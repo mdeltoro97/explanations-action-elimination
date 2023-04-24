@@ -1,0 +1,3 @@
+(get_stick stick1)
+(make_axe stick1)
+; cost = 2 (unit cost)

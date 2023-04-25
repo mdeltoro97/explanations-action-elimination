@@ -74,16 +74,22 @@ def main():
     print()
     print("---> Initial State <---")  
     print(f"{task.init.values}")
+    init_values_list = []
     for i in range(len(task.init.values)):
         elemento = task.init.values[i]
-        print(task.variables.value_names[i][elemento]) 
+        fact = task.variables.value_names[i][elemento].replace("Atom ", "") 
+        init_values_list.append(fact)
+        print(init_values_list[i]) 
     
     print()
     print("---> Goal State <---")
+    goal_values_list = []
     print(f"{task.goal.pairs}")
     for i in range(len(task.goal.pairs)):
         elemento = task.goal.pairs[i]
-        print(task.variables.value_names[elemento[0]][elemento[1]]) 
+        fact = task.variables.value_names[elemento[0]][elemento[1]].replace("Atom ", "")
+        goal_values_list.append(fact)
+        print(goal_values_list[i]) 
 
     print()
     print("---> Variables <---")
@@ -105,7 +111,7 @@ def main():
             print(f"Effects: {task.variables.value_names[pre_post[j][0]][pre_post[j][2]]}")
         
         print()
-        
+
     print()
     print(f"Create explanation task time: {create_task_time:.3f}")
   

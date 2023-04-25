@@ -51,21 +51,41 @@ def main():
 
     #with open(os.path.join(options.directory, options.file), mode='w') as output_file:
     #    new_task.output(stream=output_file)
-    print(f"Initial state: {task.init.values}\n")
-    print(f"Goal (var,val): {task.goal.pairs}\n")
-    print(f"Variables: {task.variables.value_names}\n")
-    print(f"Variable's range, (the number of different values it can take it on): {task.variables.ranges}\n")
-    print(f"Axiom layers: {task.variables.axiom_layers}\n")
+
+    #print(f"Axiom layers: {task.variables.axiom_layers}\n")
     print(f"Operators: {operator_name_to_index_map}\n")
     print(f"Plan#1 : {plan1}\n")
     print(f"Plan (without skip actions) cost: {plan_cost1}\n")
     print(f"Plan#2 : {plan2}\n")
     print(f"Plan (with skip actions) cost: {plan_cost2}\n")
-    print(task.variables.value_names[6][4])
     task.dump()
     create_task_time = process_time() - create_task_time
-    print(f"Create AE task time: {create_task_time:.3f}")
     
+    print()
+    print("---> Initial State <---")  
+    print(f"{task.init.values}")
+    for i in range(len(task.init.values)):
+        elemento = task.init.values[i]
+        print(task.variables.value_names[i][elemento]) 
     
+    print()
+    print("---> Goal State <---")
+    print(f"{task.goal.pairs}")
+    for i in range(len(task.goal.pairs)):
+        elemento = task.goal.pairs[i]
+        print(task.variables.value_names[elemento[0]][elemento[1]]) 
+
+    print()
+    print("---> Variables <---")
+    for i in range(len(task.variables.ranges)):
+        print(f"var{i}")
+        print(f"number of different values: {task.variables.ranges[i]}")
+        for j in range(task.variables.ranges[i]):
+             print(task.variables.value_names[i][j])
+        print()
+    
+    print()
+    print(f"Create explanation task time: {create_task_time:.3f}")
+
 if __name__ == '__main__':
     main()

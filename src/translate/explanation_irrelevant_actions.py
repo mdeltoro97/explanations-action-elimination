@@ -53,7 +53,7 @@ def main():
     #    new_task.output(stream=output_file)
 
     #print(f"Axiom layers: {task.variables.axiom_layers}\n")
-    #print(f"Operators: {operator_name_to_index_map}\n")
+    print(f"Operators: {operator_name_to_index_map}\n")
     print()
     print(f"Plan#1: {plan1}\n")
     print(f"Plan (without skip actions) cost: {plan_cost1}\n")
@@ -87,6 +87,6 @@ def main():
     
     print()
     print(f"Create explanation task time: {create_task_time:.3f}")
-
+  
 if __name__ == '__main__':
     main()

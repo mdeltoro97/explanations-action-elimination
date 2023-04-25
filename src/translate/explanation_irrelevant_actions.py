@@ -13,14 +13,6 @@ from simplify import TriviallySolvable, filter_unreachable_propositions
 from variable_order import find_and_apply_variable_order
 
 
-# Type of reduction
-MR  = 'MR'
-MLR = 'MLR'
-# Macro-operator string
-MACRO_OP_STRING = "-triv-nec-macro-"
-# Cost scalin file
-ORGINAL_OP_COSTS_FILE = 'original-op-costs.txt'
-
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
     if ordered:
         # Ordered tasks create a different operator for each operator in the plan
@@ -32,6 +24,8 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         # set.add(x) always returns None so it doesn't affect the condition
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
 
+def consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list):
+    print()
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)
@@ -40,7 +34,6 @@ def main():
     required_named.add_argument('-p1', '--plan1', help='Path to plan file.', type=str, required=True)
     required_named.add_argument('-p2', '--plan2', help='Path to plan with skip actions file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
-    parser.add_argument('--macro-operators', help='Compiled task only creates macro operators for streaks of triv. nec. actions', action='store_true', default=False)
     options = parser.parse_args()
     options.file = 'action-elimination2.sas'
 
@@ -61,23 +54,13 @@ def main():
     print(f"Plan (without skip actions): {plan1}  cost: {plan_cost1}\n")
     print(f"Plan (with skip actions): {plan2}  cost: {plan_cost2}\n")
 
-    # Measure create task time
-    create_task_time = process_time()
- 
-
-    #print(f"Operators: {operator_name_to_index_map}\n")
-    #print()
-    
-    #task.dump()
-    create_task_time = process_time() - create_task_time
-    
     print()
     print("---> Initial State <---")  
     print(f"{task.init.values}")
     init_values_list = []
     for i in range(len(task.init.values)):
         elemento = task.init.values[i]
-        fact = task.variables.value_names[i][elemento].replace("Atom ", "") 
+        fact = task.variables.value_names[i][elemento]
         init_values_list.append(fact)
         print(init_values_list[i]) 
     
@@ -87,33 +70,50 @@ def main():
     print(f"{task.goal.pairs}")
     for i in range(len(task.goal.pairs)):
         elemento = task.goal.pairs[i]
-        fact = task.variables.value_names[elemento[0]][elemento[1]].replace("Atom ", "")
+        fact = task.variables.value_names[elemento[0]][elemento[1]]
         goal_values_list.append(fact)
         print(goal_values_list[i]) 
 
     print()
     print("---> Variables <---")
+    var_values_list = []
     for i in range(len(task.variables.ranges)):
         print(f"var{i}")
-        print(f"number of different values: {task.variables.ranges[i]}")
+        #print(f"number of different values: {task.variables.ranges[i]}")
+        temp_list = []
         for j in range(task.variables.ranges[i]):
-             print(task.variables.value_names[i][j])
+             val = task.variables.value_names[i][j]
+             temp_list.append(val)
+             
+        var_values_list.append(temp_list)
+        print(var_values_list[i])
         print()
     
     new_operators = get_operators_from_plan(task.operators, plan1, operator_name_to_index_map, options.subsequence)
-    print("---> Operators <---")
+    print("---> Operators in Plan <---")
+    precond_actions_list = []
+    effects_actions_list = []
     for i in range(len(new_operators)):
         print(new_operators[i].name)
         pre_post=new_operators[i].pre_post
+        precond_temp = []
+        effects_temp = []
         for j in range(len(pre_post)):
             print(pre_post[j])
-            print(f"Precond: {task.variables.value_names[pre_post[j][0]][pre_post[j][1]]}")
-            print(f"Effects: {task.variables.value_names[pre_post[j][0]][pre_post[j][2]]}")
-        
+            precond = task.variables.value_names[pre_post[j][0]][pre_post[j][1]]
+            effects = task.variables.value_names[pre_post[j][0]][pre_post[j][2]]
+            precond_temp.append(precond)
+            effects_temp.append(effects)
+            print(f"Precond: {precond}")
+            print(f"Effects: {effects}")
+        precond_actions_list.append(precond_temp)
+        effects_actions_list.append(effects_temp)
         print()
 
-    print()
-    print(f"Create explanation task time: {create_task_time:.3f}")
+    final_precond_effects_list = list(zip(precond_actions_list, effects_actions_list))
+    print(final_precond_effects_list)
+
+    consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list)
   
 if __name__ == '__main__':
     main()

@@ -25,7 +25,33 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
 
 def consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list):
-    print()
+    all_facts_list = init_values_list
+    for i in range(len(final_precond_effects_list)):
+        action = final_precond_effects_list[i]
+        print(f"Action {action[0]}")
+        if i == 0 :
+            print("    Consumes from the initial state:")
+            for j in range(len(action[1])):
+                fact_temp=action[1][j]
+                print(f"     -{fact_temp}")
+                all_facts_list.remove(fact_temp)
+            print("    Produces:")
+            for j in range(len(action[2])):
+                fact_temp=action[2][j]
+                print(f"     -{fact_temp}")
+                all_facts_list.append(fact_temp)
+        else:
+            #pediente: tal vez darle form de par(fact, el que la produce) para la hora de imprimir la causalidad
+            print()
+        print()
+    print(all_facts_list)
+
+    #all_facts_list = init_values_list
+    #for i in range(len(final_precond_effects_list)):
+    #    precond_temp = final_precond_effects_list[i][0]
+    #    for j in range(len(precond_temp)):
+    #        if precond_temp[j] in all_facts_list:
+    #            print()
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)
@@ -91,10 +117,12 @@ def main():
     
     new_operators = get_operators_from_plan(task.operators, plan1, operator_name_to_index_map, options.subsequence)
     print("---> Operators in Plan <---")
+    operators_list = []
     precond_actions_list = []
     effects_actions_list = []
     for i in range(len(new_operators)):
         print(new_operators[i].name)
+        operators_list.append(new_operators[i].name)
         pre_post=new_operators[i].pre_post
         precond_temp = []
         effects_temp = []
@@ -110,8 +138,8 @@ def main():
         effects_actions_list.append(effects_temp)
         print()
 
-    final_precond_effects_list = list(zip(precond_actions_list, effects_actions_list))
-    print(final_precond_effects_list)
+    final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
+    #print(final_precond_effects_list)
 
     consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list)
   

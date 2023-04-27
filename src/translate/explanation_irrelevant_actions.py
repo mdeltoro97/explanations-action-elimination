@@ -25,24 +25,21 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
 
 def consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list):
+    #falta el prevail
     all_facts_list = init_values_list
     for i in range(len(final_precond_effects_list)):
         action = final_precond_effects_list[i]
         print(f"Action {action[0]}")
-        if i == 0 :
-            print("    Consumes from the initial state:")
-            for j in range(len(action[1])):
-                fact_temp=action[1][j]
-                print(f"     -{fact_temp}")
-                all_facts_list.remove(fact_temp)
-            print("    Produces:")
-            for j in range(len(action[2])):
-                fact_temp=action[2][j]
-                print(f"     -{fact_temp}")
-                all_facts_list.append(fact_temp)
-        else:
-            #pediente: tal vez darle form de par(fact, el que la produce) para la hora de imprimir la causalidad
-            print()
+        print("    Consumes:")
+        for j in range(len(action[1])):
+            fact_temp=action[1][j]
+            print(f"     -{fact_temp}")
+            all_facts_list.remove(fact_temp)
+        print("    Produces:")
+        for j in range(len(action[2])):
+            fact_temp=action[2][j]
+            print(f"     -{fact_temp}")
+            all_facts_list.append(fact_temp)                
         print()
     print(all_facts_list)
 

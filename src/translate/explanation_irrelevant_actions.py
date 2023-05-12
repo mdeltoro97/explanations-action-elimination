@@ -24,7 +24,7 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         # set.add(x) always returns None so it doesn't affect the condition
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
 
-def consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list):
+def printing_consumer_producer(init_values_list,final_precond_effects_list):
     #falta el prevail
     all_facts_list = init_values_list
     for i in range(len(final_precond_effects_list)):
@@ -32,7 +32,7 @@ def consumer_producer(init_values_list,goal_values_list,var_values_list,final_pr
         print(f"Action {action[0]}")
         print("    Consumes:")
         for j in range(len(action[1])):
-            fact_temp=action[1][j]
+            fact_temp=action[1][j]  
             print(f"     -{fact_temp}")
             all_facts_list.remove(fact_temp)
         print("    Produces:")
@@ -43,13 +43,44 @@ def consumer_producer(init_values_list,goal_values_list,var_values_list,final_pr
         print()
     print(all_facts_list)
 
-    #all_facts_list = init_values_list
-    #for i in range(len(final_precond_effects_list)):
-    #    precond_temp = final_precond_effects_list[i][0]
-    #    for j in range(len(precond_temp)):
-    #        if precond_temp[j] in all_facts_list:
-    #            print()
+def creating_cons_prod(init_values_list,goal_values_list,final_precond_effects_list):
+    #añadir los prevail DESDE ANTES
+    list_final=[]
 
+    for i in range(len(init_values_list)):
+        elem= init_values_list[i]
+        list_final.append((elem,[],[],[0])) # lista que tiene los elementos de la forma (fact,list prevail,list cons, list prod)
+
+    for i in range(len(final_precond_effects_list)):
+        action = final_precond_effects_list[i]
+        precond = action[1]
+        effects = action[2]
+        for j in range(len(precond)):
+            fact= precond[j]
+            for k in range(len(list_final)):
+                elem=list_final[k]
+                if elem[0] == fact:
+                    list_final[k][2].append(i+1) # se añadió para ese fact la action que lo consumió
+        for l in range(len(effects)):
+            elem= effects[l]
+            exist=False
+            for k in range(len(list_final)):
+                elem2=list_final[k]
+                if elem2[0] == elem:
+                    exist=True
+                    list_final[k][3].append(i+1)
+                    break;
+            if exist == False:
+                list_final.append((elem,[],[],[i+1])) 
+
+    for i in range(len(list_final)):
+        elem = list_final[i]
+        print(elem[0])
+        print(f"Prevail list: {elem[1]}")
+        print(f"Consumers list: {elem[2]}")
+        print(f"Producers list: {elem[3]}")
+        print() 
+  
 def main():
     parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
@@ -119,6 +150,7 @@ def main():
     effects_actions_list = []
     for i in range(len(new_operators)):
         print(new_operators[i].name)
+        print(f"Prevail: {new_operators[i].prevail}")
         operators_list.append(new_operators[i].name)
         pre_post=new_operators[i].pre_post
         precond_temp = []
@@ -138,7 +170,9 @@ def main():
     final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
     #print(final_precond_effects_list)
 
-    consumer_producer(init_values_list,goal_values_list,var_values_list,final_precond_effects_list)
+    #printing_consumer_producer(init_values_list,final_precond_effects_list)
+
+    creating_cons_prod(init_values_list,goal_values_list,final_precond_effects_list)
   
 if __name__ == '__main__':
     main()

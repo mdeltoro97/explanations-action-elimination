@@ -168,7 +168,7 @@ def main():
         print()
 
     final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
-    #print(final_precond_effects_list)
+    print(final_precond_effects_list)
 
     #printing_consumer_producer(init_values_list,final_precond_effects_list)
 

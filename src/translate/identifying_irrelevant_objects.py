@@ -53,7 +53,7 @@ def identifying_irrelevant_objects(list_initial_state, list_goal_state, list_act
                     list_objects.remove(temp)
     # Printing irrelevant objects, in case they exist (those not found in relevant actions) 
     if len(list_objects) == 0:
-        print(f"There are no irrelevant objects.\n")   
+        print('There are no irrelevant objects.\n')   
     else:
         elementos = ", ".join(list_objects)
         print(f"Objects [{elementos}] are irrelevant.\n")
@@ -73,7 +73,7 @@ def main():
         sys.exit(2)
 
     parse_input_sas_time = process_time()
-    task, operator_name_to_index_map = parse_task(options.task)
+    task, _ = parse_task(options.task)
     plan1, plan_cost1 = parse_plan(options.plan1)
     plan2, plan_cost2 = parse_plan(options.plan2)
     parse_input_sas_time = process_time() - parse_input_sas_time

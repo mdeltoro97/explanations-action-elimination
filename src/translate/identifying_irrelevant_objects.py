@@ -51,9 +51,12 @@ def identifying_irrelevant_objects(list_initial_state, list_goal_state, list_act
            for temp in objects:
                 if temp in list_objects:
                     list_objects.remove(temp)
-    # Printing irrelevant objects, i.e., those not found in relevant actions.      
-    elementos = ", ".join(list_objects)
-    print(f"Objects [{elementos}] are irrelevant.\n")
+    # Printing irrelevant objects, in case they exist (those not found in relevant actions) 
+    if len(list_objects) == 0:
+        print(f"There are no irrelevant objects.\n")   
+    else:
+        elementos = ", ".join(list_objects)
+        print(f"Objects [{elementos}] are irrelevant.\n")
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)

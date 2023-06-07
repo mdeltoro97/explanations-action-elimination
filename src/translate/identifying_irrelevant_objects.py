@@ -82,8 +82,8 @@ def main():
     print(f"Parse input SAS task and plan time: {parse_input_sas_time:.3f}\n")
    
 
-    print(f"Plan (without skip actions): {plan1}  cost: {plan_cost1}\n")
-    print(f"Plan (with skip actions): {plan2}  cost: {plan_cost2}\n")
+    print(f"Plan before AE: {plan1}  cost: {plan_cost1}\n")
+    print(f"Plan after AE: {plan2}  cost: {plan_cost2}\n")
 
     list_pos_irr_actions=[]
     for elemento in plan2:

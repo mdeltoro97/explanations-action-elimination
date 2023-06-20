@@ -1,0 +1,5 @@
+(skip-action plan-pos-0)
+(skip-action plan-pos-1)
+(pick-up a)
+(stack a b)
+; cost = 2 (general cost)

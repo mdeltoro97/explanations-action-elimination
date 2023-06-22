@@ -67,7 +67,17 @@ def extracting_causal_links(init_values_list,final_precond_effects_list):
                 else:
                     list_final2.append((producers[j], elem[1], -1))
     return list_final2
-        
+
+def causal_chain(elements,diccionario_ordenado, element, list_temp):
+    for val in elements:
+        if val != element:
+            if val not in list_temp:
+                list_temp.append(val)
+                list_temp2 = diccionario_ordenado.get(val,[])
+                elements2 = list(set([valor[0] for valor in list_temp2]))
+                causal_chain(elements2,diccionario_ordenado, element, list_temp)
+    return list_temp
+       
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)
@@ -124,7 +134,7 @@ def main():
     final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
 
     list_causal_links_ae = extracting_causal_links(init_values_list,final_precond_effects_list)
-    print(list_causal_links_ae)
+    #print(list_causal_links_ae)
     #tengo que hacer 2 llamadas, una para obtener los causal links del paln con las skip actios y otro del plan normal
 
     #suponiendo aque aquí  obtengo los casusal links del plan normal:
@@ -139,11 +149,19 @@ def main():
         else:
             diccionario[clave] = [valor]
     diccionario_ordenado = dict(sorted(diccionario.items()))    
-    print(diccionario_ordenado)
+    #print(diccionario_ordenado)
 
+    causal_chain_list = []
     for element in list_causal_links_ae:
         if element not in list_causal_links_plan and element[2]!=-1:
-            print(element)
+            for val in diccionario_ordenado[element[2]]:
+                if val[1]== element[1]:
+                    causal_chain_list.append(val[0])
+                    list_temp = diccionario_ordenado.get(val[0],[])
+                    elements = list(set([valor[0] for valor in list_temp]))
+                    causal_chain_list.extend(causal_chain(elements,diccionario_ordenado,element[0],[]))      
+    print(causal_chain_list)                
+            
 
 
 
@@ -158,7 +176,7 @@ def main():
             list_pos_irr_actions.append(int(numero)+1)
 
     print()
-    print(f"Irrelevant actions in the plan: {list_pos_irr_actions}\n")
+    #print(f"Irrelevant actions in the plan: {list_pos_irr_actions}\n")
 
     #list_causal_links = [(0, 'Atom ontable(c)', 1), (0, 'Atom ontable(d)', -1), (0, 'Atom clear(c)', 1), (2, 'Atom clear(c)', -1), (0, 'Atom clear(d)', 2), (0, 'Atom clear(b)', 4), (0, 'Atom handempty()', 1), (2, 'Atom handempty()', -1), (4, 'Atom handempty()', -1), (0, 'Atom ontable(b)', -1), (0, 'Atom ontable(a)', 3), (0, 'Atom clear(a)', 3), (4, 'Atom clear(a)', -1), (1, 'NegatedAtom clear(c)', -1), (1, 'NegatedAtom handempty()', -1), (3, 'NegatedAtom handempty()', 4), (1, 'Atom holding(c)', -1), (2, 'NegatedAtom clear(d)', -1), (2, 'Atom on(c, d)', -1), (3, 'NegatedAtom clear(a)', 4), (3, 'Atom holding(a)', 4), (4, 'NegatedAtom clear(b)', -1), (4, 'Atom on(a, b)', -1)]
    

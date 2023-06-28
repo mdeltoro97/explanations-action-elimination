@@ -6,6 +6,7 @@ from copy import deepcopy
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
+# TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. Why does this happen?
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
     if ordered:
         # Ordered tasks create a different operator for each operator in the plan
@@ -73,7 +74,7 @@ def perfectly_justified(sas_plan_ae):
 
 def getting_var_pre_post_list(task,new_operators): 
     #FIXME: No sé si hara falta el task para lo que quiero abajo
-    #TODO: Modificar para que sea un alista con tuplas de la forma( liasta de precondiciones, lista de efectos) donde cada posicion de la lista representa la accion
+    #TODO: Modificar para que sea una lista con tuplas de la forma( liasta de precondiciones, lista de efectos) donde cada posicion de la lista representa la accion
     
     operators_list = []
     precond_actions_list = []
@@ -97,7 +98,7 @@ def getting_var_pre_post_list(task,new_operators):
     print(final_precond_effects_list)
     return final_precond_effects_list
 
-def extracting_causal_links(planning_task_path, plan, subsequence):
+def extracting_causal_links(planning_task_path, plan, ordered):
 
     task, operator_name_to_index_map = parse_task(planning_task_path) 
 
@@ -109,10 +110,12 @@ def extracting_causal_links(planning_task_path, plan, subsequence):
         init_values_list.append(fact)
     
     
-    new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, subsequence)
+    new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, ordered)
 
     # Create a list of operators where each position corresponds to a plan action, and each position contains a tuple with the precondition and effect lists for that action
     list_var_pre_post = getting_var_pre_post_list(task,new_operators)
+    
+    #TODO: CONTINUE
     
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -165,6 +168,8 @@ def main():
         # Extract causal link from the justified plan (with skip actions).
         task_plan_ae, plan_ae_operator_name_to_index_map = parse_task(ae_sas_file_path) 
         list_causal_links_sas_plan_ae = extracting_causal_links(ae_sas_file_path, plan_ae, options.subsequence)
+
+        #TODO: CONTINUE
 
 
 if __name__ == '__main__':

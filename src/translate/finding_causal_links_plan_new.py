@@ -72,51 +72,137 @@ def perfectly_justified(sas_plan_ae):
             return False
     return True
 
-def getting_var_pre_post_list(task,new_operators): 
-    #FIXME: No sé si hara falta el task para lo que quiero abajo
-    #TODO: Modificar para que sea una lista con tuplas de la forma( liasta de precondiciones, lista de efectos) donde cada posicion de la lista representa la accion
-    
-    operators_list = []
+def getting_var_pre_post_list(new_operators): 
+    # Obtain a list where each position represents an action, and each position contains a list of tuples in the form (list of (var, precond), list of (var,effect)]
     precond_actions_list = []
     effects_actions_list = []
 
     for i in range(len(new_operators)):
-        operators_list.append(new_operators[i].name)
         pre_post=new_operators[i].pre_post
         precond_temp = []
         effects_temp = []
         for j in range(len(pre_post)):
-            precond = task.variables.value_names[pre_post[j][0]][pre_post[j][1]]
-            effects = task.variables.value_names[pre_post[j][0]][pre_post[j][2]]
-            precond_temp.append(precond)
-            effects_temp.append(effects)
+            var = pre_post[j][0]
+            precond = pre_post[j][1]
+            effects = pre_post[j][2]
+            precond_temp.append((var,precond))
+            effects_temp.append((var,effects))
         precond_actions_list.append(precond_temp)
         effects_actions_list.append(effects_temp)
 
-    final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
+    final_precond_effects_list = list(zip(precond_actions_list, effects_actions_list))
 
-    print(final_precond_effects_list)
+        #var_pre_pos_list = []
+    # for i in range(len(new_operators)):
+    #     pre_post=new_operators[i].pre_post
+    #     for j in range(len(pre_post)):
+    #         var = precond = pre_post[j][0]
+    #         precond = pre_post[j][1]
+    #         effects = pre_post[j][2]
+    #         var_pre_pos_list.append((var,precond, effects))
+    #     final_precond_effects_list.append(var_pre_pos_list)
+    #     var_pre_pos_list = []
+
     return final_precond_effects_list
-
+    
 def extracting_causal_links(planning_task_path, plan, ordered):
 
     task, operator_name_to_index_map = parse_task(planning_task_path) 
 
     # Obtain the values of the initial state of the form (var,val)
-    init_values_list = []
+    list_causal_links = []
+
     for i in range(len(task.init.values)):
         value = task.init.values[i]
         fact = (i,value)
-        init_values_list.append(fact)
-    
+        list_causal_links.append([[0],fact,[]])
     
     new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, ordered)
 
     # Create a list of operators where each position corresponds to a plan action, and each position contains a tuple with the precondition and effect lists for that action
-    list_var_pre_post = getting_var_pre_post_list(task,new_operators)
+    list_var_pre_post = getting_var_pre_post_list(new_operators)
+
+    for i in range(len(list_var_pre_post)):
+        list_precond = list_var_pre_post[i][0]
+        list_effects = list_var_pre_post[i][1]
+        for j in range(len(list_precond)):
+            fact= list_precond[j]
+            for k in range(len(list_causal_links)):
+                causal_link_temp = list_causal_links[k]
+
+                if causal_link_temp[1] == fact or (causal_link_temp[1][1] == -fact[1] and causal_link_temp[1][0] == fact[0]):
+                    list_causal_links[k][2].append(i+1)
+        for l in range(len(list_effects)):
+            fact= list_effects[l]
+            exist=False
+            for k in range(len(list_causal_links)):
+                causal_link_temp=list_causal_links[k]
+                if causal_link_temp[1] == fact:
+                    exist=True
+                    list_causal_links[k][0].append(i+1)
+                    break;
+            if exist == False:
+                list_causal_links.append([[i+1],fact,[]])
     
-    #TODO: CONTINUE
+    list_final=[]
+    for i in range(len(list_causal_links)):
+        causal_link_temp = list_causal_links[i]
+        fact = task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
+        producers = causal_link_temp[0]
+        consumers = causal_link_temp[2]
+        if "plan-pos" not in fact and "irrelevant-fact" not in fact: 
+            for j in range(len(producers)):
+                if j < len(consumers):
+                    list_final.append((producers[j], causal_link_temp[1], consumers[j]))
+                else:
+                    list_final.append((producers[j], causal_link_temp[1], -1))
+    return list_final
+
+def causal_chain(elements,ordered_dict, element, list_temp):
+    for val in elements:
+        if val != element:
+            if val not in list_temp:
+                list_temp.append(val)
+                list_temp2 = ordered_dict.get(val,[])
+                elements2 = list(set([valor[0] for valor in list_temp2]))
+                causal_chain(elements2,ordered_dict, element, list_temp)
+    return list_temp
     
+def convert_to_dict(list_causal_links_sas_plan):
+    dict_consumer_producer = {}
+    for causal_link_temp in list_causal_links_sas_plan:
+        key = causal_link_temp[2]
+        value = (causal_link_temp[0],causal_link_temp[1])
+        if key in dict_consumer_producer:
+            dict_consumer_producer[key].append(value)
+        else:
+            dict_consumer_producer[key] = [value]
+    ordered_dict = dict(sorted(dict_consumer_producer.items()))   
+    return ordered_dict
+
+def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):
+    for causal_link_temp in list_causal_links_sas_plan:
+        fact_sas_plan = (causal_link_temp[0],task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        if fact_sas_plan == causal_link_temp_renamed:
+            return True
+    return False
+
+def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict):
+    causal_chain_list = []
+    for causal_link_temp in list_causal_links_sas_plan_ae:
+        causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
+        if  is_in_sas_plan == False and causal_link_temp[2]!=-1:      
+            for causal_link_dict in ordered_dict[causal_link_temp[2]]:
+                fact_renamed = task.variables.value_names[causal_link_dict[1][0]][causal_link_dict[1][1]]
+                if fact_renamed== causal_link_temp_renamed[1]:
+                    causal_chain_list.append(causal_link_dict[0])
+                    list_temp = ordered_dict.get(causal_link_dict[0],[])
+                    elements = list(set([value[0] for value in list_temp]))
+                    #TODO: Check this method
+                    causal_chain_list.extend(causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[]))  
+    return sorted(causal_chain_list)
+
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
@@ -163,13 +249,21 @@ def main():
 
         # Extract causal links from the input plan
         plan, plan_cost = parse_plan(sas_plan_file_path)
+        task, operator_name_to_index_map = parse_task(output_sas_file_path)
         list_causal_links_sas_plan = extracting_causal_links(output_sas_file_path, plan, options.subsequence)
 
         # Extract causal link from the justified plan (with skip actions).
-        task_plan_ae, plan_ae_operator_name_to_index_map = parse_task(ae_sas_file_path) 
+        task_ae, ae_operator_name_to_index_map = parse_task(ae_sas_file_path) 
         list_causal_links_sas_plan_ae = extracting_causal_links(ae_sas_file_path, plan_ae, options.subsequence)
 
-        #TODO: CONTINUE
+        # Convert it into a dictionary where the keys represent the consumers and the values are lists of (producers, fact) to simplify the search for causal chains
+        ordered_dict = convert_to_dict(list_causal_links_sas_plan)
+
+        # Obtain the causal chain 
+        causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
+        print(causal_chain_list) 
+
+    #TODO: CONTINUE
 
 
 if __name__ == '__main__':

@@ -132,6 +132,7 @@ def main():
         effects_actions_list.append(effects_temp)
 
     final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
+    print(final_precond_effects_list)
 
     list_causal_links_ae = extracting_causal_links(init_values_list,final_precond_effects_list)
     #print(list_causal_links_ae)

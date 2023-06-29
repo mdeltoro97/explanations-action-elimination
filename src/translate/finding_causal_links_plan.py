@@ -227,18 +227,18 @@ def main():
     # Obtain the path of output.sas and sas_plan to generate the action_elim.sas file -> action-elimination.sas
     # TODO: When I execute the commands, the results are automatically generated in the translate folder. How can I put them in the folder I want?
     # TODO: How to obtain the paths to these files instead of getting them manually?
-    output_sas_file_path ="../../domains/blocks/output.sas"
+    output_sas_file_path ="output.sas"
     sas_plan_file_path = "../../domains/blocks/sas_plan"
     generating_ae_sas_file(output_sas_file_path,sas_plan_file_path)
 
     # Solve the action elimination task using an optimal planner -> sas_plan
     # TODO: How to obtain the path to this file instead of getting it manually?
-    ae_sas_file_path ="/home/mmdtc/Documents/Codes/ae-explanation/action-elimination/src/translate/action-elimination.sas"
+    ae_sas_file_path ="action-elimination.sas"
     solving_ae_task(ae_sas_file_path)   
 
     # Determine if a plan is or not perfectly justified
     # TODO: How to obtain the path to this file instead of getting it manually?
-    sas_plan_ae_path = "/home/mmdtc/Documents/Codes/ae-explanation/action-elimination/src/translate/sas_plan"
+    sas_plan_ae_path = "sas_plan"
     plan_ae, plan_ae_cost = parse_plan(sas_plan_ae_path)
     plan_perf_justf = perfectly_justified(plan_ae)
     

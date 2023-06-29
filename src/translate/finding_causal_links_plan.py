@@ -1,15 +1,12 @@
 import argparse
-import json
+import subprocess
 import sys
-from time import process_time
-from math import inf, ceil
 from copy import deepcopy
 
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
-from itertools import zip_longest
-
+# TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. Why does this happen?
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
     if ordered:
         # Ordered tasks create a different operator for each operator in the plan
@@ -21,226 +18,253 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         # set.add(x) always returns None so it doesn't affect the condition
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
     
-def extracting_causal_links(init_values_list,final_precond_effects_list):
-    list_final=[]
+def executing_fast_downward(domain_path,problem_path):
+    # Fast Downward file path
+    # TODO: How to obtain the path to this file instead of getting it manually?
+    fast_downward_path = '../../fast-downward.py'
 
-    for i in range(len(init_values_list)):
-        elem= init_values_list[i]
-        list_final.append([[0],elem,[]]) 
+    # Build the command
+    command = f'{sys.executable} {fast_downward_path} --translate {domain_path} {problem_path}'
 
+    try:
+        # Execute the command on the system
+        subprocess.run(command, shell=True, check=True)
+        print("Successful Fast Downward execution.")
+    except subprocess.CalledProcessError:
+        print("Error: Fast Downward execution failed.")
+        sys.exit(1)
 
-    for i in range(len(final_precond_effects_list)):
-        action = final_precond_effects_list[i]
-        precond = action[1]
-        effects = action[2]
-        for j in range(len(precond)):
-            fact= precond[j]
-            for k in range(len(list_final)):
-                elem=list_final[k]
-                if elem[1] == fact:
-                    if elem[2] == [-1]:
-                        list_final[k][2]=[i+1]
-                    else:
-                        list_final[k][2].append(i+1) # se añadió para ese fact la action que lo consumió
-        for l in range(len(effects)):
-            elem= effects[l]
-            exist=False
-            for k in range(len(list_final)):
-                elem2=list_final[k]
-                if elem2[1] == elem:
-                    exist=True
-                    list_final[k][0].append(i+1)
-                    break;
-            if exist == False:
-                list_final.append([[i+1],elem,[]]) 
+def generating_ae_sas_file(output_sas_path, sas_plan_path):
+    # action_elim file path
+    # TODO: How to obtain the path to this file instead of getting it manually?
+    action_elim_path = 'action_elim.py'
 
-    list_final2=[]
-    for i in range(len(list_final)):
-        elem = list_final[i]
-        fact=elem[1]
-        producers = elem[0]
-        consumers = elem[2]
-        if "plan-pos" not in fact and "irrelevant-fact" not in fact: # esto es solo cdo llamo a python3 finding_causal_links_plan.py -t action-elimination.sas -p1 sas_plan -p2 ../../domains/blocks/sas_plan.2 --subsequence
-            for j in range(len(producers)):
-                if j < len(consumers):
-                    list_final2.append((producers[j], elem[1], consumers[j]))
-                else:
-                    list_final2.append((producers[j], elem[1], -1))
-    return list_final2
+    # Build the command
+    command = f'{sys.executable} {action_elim_path} -t {output_sas_path} -p {sas_plan_path} --reduction MLR --enhanced-fix-point --subsequence --add-pos-to-goal'
 
-def causal_chain(elements,diccionario_ordenado, element, list_temp):
-    for val in elements:
-        if val != element:
-            if val not in list_temp:
-                list_temp.append(val)
-                list_temp2 = diccionario_ordenado.get(val,[])
-                elements2 = list(set([valor[0] for valor in list_temp2]))
-                causal_chain(elements2,diccionario_ordenado, element, list_temp)
-    return list_temp
-       
+    try:
+        # Execute the command on the system
+        subprocess.run(command, shell=True, check=True)
+        print("Generation of action_elimination.sas file successfully completed.")
+    except subprocess.CalledProcessError:
+        print("Error: Failed to generate the action_elimination.sas file.")
+        sys.exit(1)
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)
-    required_named = parser.add_argument_group('required named arguments')
-    required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)
-    required_named.add_argument('-p1', '--plan1', help='Path to plan file.', type=str, required=True)
-    required_named.add_argument('-p2', '--plan2', help='Path to plan with skip actions file.', type=str, required=True)
-    parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
-    options = parser.parse_args()
-    options.file = 'action-elimination2.sas'
+def solving_ae_task(ae_sas_path):
+    # Fast Downward file path
+    # TODO: How to obtain the path to this file instead of getting it manually?
+    fast_downward_path = '../../fast-downward.py'
 
-    if options.task == None or options.plan1 == None or options.plan2 == None:
-        parser.print_help()
-        sys.exit(2)
+    # Build the command
+    command = f'{sys.executable} {fast_downward_path} {ae_sas_path} --search "astar(hmax())"'
 
-    parse_input_sas_time = process_time()
-    task, operator_name_to_index_map = parse_task(options.task)
-    plan1, plan_cost1 = parse_plan(options.plan1)
-    plan2, plan_cost2 = parse_plan(options.plan2)
-    parse_input_sas_time = process_time() - parse_input_sas_time
-    
-    print()
-    print(f"Parse input SAS task and plan time: {parse_input_sas_time:.3f}")
-    print()
+    try:
+        # Execute the command on the system
+        subprocess.run(command, shell=True, check=True)
+        print("Completed resolution Action Elimination task.")
+    except subprocess.CalledProcessError:
+        print("Error: Fast Downward execution failed. Resolution Action Elimination task not completed.")
+        sys.exit(1)
 
-    
-    init_values_list = []
-    for i in range(len(task.init.values)):
-        elemento = task.init.values[i]
-        fact = task.variables.value_names[i][elemento]
-        init_values_list.append(fact)
-    
-      
-    new_operators = get_operators_from_plan(task.operators, plan1, operator_name_to_index_map, options.subsequence)
-    operators_list = []
+def perfectly_justified(sas_plan_ae):
+    for action in sas_plan_ae:
+        if 'skip-action' in action:
+            return False
+    return True
+
+def getting_var_pre_post_list(new_operators): 
+    # Obtain a list where each position represents an action, and each position contains a list of tuples in the form (list of (var, precond), list of (var,effect)]
     precond_actions_list = []
     effects_actions_list = []
+
     for i in range(len(new_operators)):
-        #print(f"Prevail: {new_operators[i].prevail}")
-        #Añadir el prevail
-        operators_list.append(new_operators[i].name)
         pre_post=new_operators[i].pre_post
         precond_temp = []
         effects_temp = []
         for j in range(len(pre_post)):
-            #print(pre_post[j])
-            precond = task.variables.value_names[pre_post[j][0]][pre_post[j][1]]
-            effects = task.variables.value_names[pre_post[j][0]][pre_post[j][2]]
-            precond_temp.append(precond)
-            effects_temp.append(effects)
+            var = pre_post[j][0]
+            precond = pre_post[j][1]
+            effects = pre_post[j][2]
+            precond_temp.append((var,precond))
+            effects_temp.append((var,effects))
         precond_actions_list.append(precond_temp)
         effects_actions_list.append(effects_temp)
 
-    final_precond_effects_list = list(zip(operators_list, precond_actions_list, effects_actions_list))
-    print(final_precond_effects_list)
+    final_precond_effects_list = list(zip(precond_actions_list, effects_actions_list))
 
-    list_causal_links_ae = extracting_causal_links(init_values_list,final_precond_effects_list)
-    #print(list_causal_links_ae)
-    #tengo que hacer 2 llamadas, una para obtener los causal links del paln con las skip actios y otro del plan normal
+        #var_pre_pos_list = []
+    # for i in range(len(new_operators)):
+    #     pre_post=new_operators[i].pre_post
+    #     for j in range(len(pre_post)):
+    #         var = precond = pre_post[j][0]
+    #         precond = pre_post[j][1]
+    #         effects = pre_post[j][2]
+    #         var_pre_pos_list.append((var,precond, effects))
+    #     final_precond_effects_list.append(var_pre_pos_list)
+    #     var_pre_pos_list = []
 
-    #suponiendo aque aquí  obtengo los casusal links del plan normal:
-    list_causal_links_plan=[(0, 'Atom ontable(c)', 1), (0, 'Atom ontable(d)', -1), (0, 'Atom clear(c)', 1), (2, 'Atom clear(c)', -1), (0, 'Atom clear(d)', 2), (0, 'Atom clear(b)', 4), (0, 'Atom handempty()', 1), (2, 'Atom handempty()', 3), (4, 'Atom handempty()', -1), (0, 'Atom ontable(b)', -1), (0, 'Atom ontable(a)', 3), (0, 'Atom clear(a)', 3), (4, 'Atom clear(a)', -1), (1, 'NegatedAtom clear(c)', 2), (1, 'NegatedAtom handempty()', 2), (3, 'NegatedAtom handempty()', 4), (1, 'Atom holding(c)', 2), (2, 'NegatedAtom clear(d)', -1), (2, 'Atom on(c, d)', -1), (3, 'NegatedAtom clear(a)', 4), (3, 'Atom holding(a)', 4), (4, 'NegatedAtom clear(b)', -1), (4, 'Atom on(a, b)', -1)]
+    return final_precond_effects_list
+    
+def extracting_causal_links(planning_task_path, plan, ordered):
 
-    diccionario = {}
-    for elem in list_causal_links_plan:
-        clave = elem[2]
-        valor = (elem[0],elem[1])
-        if clave in diccionario:
-            diccionario[clave].append(valor)
+    task, operator_name_to_index_map = parse_task(planning_task_path) 
+
+    # Obtain the values of the initial state of the form (var,val)
+    list_causal_links = []
+
+    for i in range(len(task.init.values)):
+        value = task.init.values[i]
+        fact = (i,value)
+        list_causal_links.append([[0],fact,[]])
+    
+    new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, ordered)
+
+    # Create a list of operators where each position corresponds to a plan action, and each position contains a tuple with the precondition and effect lists for that action
+    list_var_pre_post = getting_var_pre_post_list(new_operators)
+
+    for i in range(len(list_var_pre_post)):
+        list_precond = list_var_pre_post[i][0]
+        list_effects = list_var_pre_post[i][1]
+        for j in range(len(list_precond)):
+            fact= list_precond[j]
+            for k in range(len(list_causal_links)):
+                causal_link_temp = list_causal_links[k]
+
+                if causal_link_temp[1] == fact or (causal_link_temp[1][1] == -fact[1] and causal_link_temp[1][0] == fact[0]):
+                    list_causal_links[k][2].append(i+1)
+        for l in range(len(list_effects)):
+            fact= list_effects[l]
+            exist=False
+            for k in range(len(list_causal_links)):
+                causal_link_temp=list_causal_links[k]
+                if causal_link_temp[1] == fact:
+                    exist=True
+                    list_causal_links[k][0].append(i+1)
+                    break;
+            if exist == False:
+                list_causal_links.append([[i+1],fact,[]])
+    
+    list_final=[]
+    for i in range(len(list_causal_links)):
+        causal_link_temp = list_causal_links[i]
+        fact = task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
+        producers = causal_link_temp[0]
+        consumers = causal_link_temp[2]
+        if "plan-pos" not in fact and "irrelevant-fact" not in fact: 
+            for j in range(len(producers)):
+                if j < len(consumers):
+                    list_final.append((producers[j], causal_link_temp[1], consumers[j]))
+                else:
+                    list_final.append((producers[j], causal_link_temp[1], -1))
+    return list_final
+
+def causal_chain(elements,ordered_dict, element, list_temp):
+    for val in elements:
+        if val != element:
+            if val not in list_temp:
+                list_temp.append(val)
+                list_temp2 = ordered_dict.get(val,[])
+                elements2 = list(set([valor[0] for valor in list_temp2]))
+                causal_chain(elements2,ordered_dict, element, list_temp)
+    return list_temp
+    
+def convert_to_dict(list_causal_links_sas_plan):
+    dict_consumer_producer = {}
+    for causal_link_temp in list_causal_links_sas_plan:
+        key = causal_link_temp[2]
+        value = (causal_link_temp[0],causal_link_temp[1])
+        if key in dict_consumer_producer:
+            dict_consumer_producer[key].append(value)
         else:
-            diccionario[clave] = [valor]
-    diccionario_ordenado = dict(sorted(diccionario.items()))    
-    #print(diccionario_ordenado)
+            dict_consumer_producer[key] = [value]
+    ordered_dict = dict(sorted(dict_consumer_producer.items()))   
+    return ordered_dict
 
+def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):
+    for causal_link_temp in list_causal_links_sas_plan:
+        fact_sas_plan = (causal_link_temp[0],task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        if fact_sas_plan == causal_link_temp_renamed:
+            return True
+    return False
+
+def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict):
     causal_chain_list = []
-    for element in list_causal_links_ae:
-        if element not in list_causal_links_plan and element[2]!=-1:
-            for val in diccionario_ordenado[element[2]]:
-                if val[1]== element[1]:
-                    causal_chain_list.append(val[0])
-                    list_temp = diccionario_ordenado.get(val[0],[])
-                    elements = list(set([valor[0] for valor in list_temp]))
-                    causal_chain_list.extend(causal_chain(elements,diccionario_ordenado,element[0],[]))      
-    print(causal_chain_list)                
-            
+    for causal_link_temp in list_causal_links_sas_plan_ae:
+        causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
+        if  is_in_sas_plan == False and causal_link_temp[2]!=-1:      
+            for causal_link_dict in ordered_dict[causal_link_temp[2]]:
+                fact_renamed = task.variables.value_names[causal_link_dict[1][0]][causal_link_dict[1][1]]
+                if fact_renamed== causal_link_temp_renamed[1]:
+                    causal_chain_list.append(causal_link_dict[0])
+                    list_temp = ordered_dict.get(causal_link_dict[0],[])
+                    elements = list(set([value[0] for value in list_temp]))
+                    #TODO: Check this method
+                    causal_chain_list.extend(causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[]))  
+    return sorted(causal_chain_list)
 
+def main():
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    required_named = parser.add_argument_group('required named arguments')
+    required_named.add_argument('-d', '--domain', help='Path to domain file.',type=str, required=True)
+    required_named.add_argument('-p', '--problem', help='Path to problem file.', type=str, required=True)
+    parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
+    options = parser.parse_args()
 
+    # Check files required as parameters
+    if options.domain == None or options.problem == None:
+        parser.print_help()
+        sys.exit(2)
 
+    # Generate SAS+ representation from a domain and problem -> output.sas
+    domain_path = options.domain
+    problem_path = options.problem
+    executing_fast_downward(domain_path, problem_path)
 
+    # Solve the planning task 
+    # TODO:  When I run python3 ../../fast-downward.py output.sas --search "astar(hmax())" I don't get the sas_plan with irrelevant actions that I had before
 
-    #aqui tengo que determinar si el plan esta perfectamente justificado o no. En caso negativo hacer lo de abajo, sino sacar un mensaje de que está perfect justif y que no hay acciones irr
+    # Obtain the path of output.sas and sas_plan to generate the action_elim.sas file -> action-elimination.sas
+    # TODO: When I execute the commands, the results are automatically generated in the translate folder. How can I put them in the folder I want?
+    # TODO: How to obtain the paths to these files instead of getting them manually?
+    output_sas_file_path ="../../domains/blocks/output.sas"
+    sas_plan_file_path = "../../domains/blocks/sas_plan"
+    generating_ae_sas_file(output_sas_file_path,sas_plan_file_path)
+
+    # Solve the action elimination task using an optimal planner -> sas_plan
+    # TODO: How to obtain the path to this file instead of getting it manually?
+    ae_sas_file_path ="/home/mmdtc/Documents/Codes/ae-explanation/action-elimination/src/translate/action-elimination.sas"
+    solving_ae_task(ae_sas_file_path)   
+
+    # Determine if a plan is or not perfectly justified
+    # TODO: How to obtain the path to this file instead of getting it manually?
+    sas_plan_ae_path = "/home/mmdtc/Documents/Codes/ae-explanation/action-elimination/src/translate/sas_plan"
+    plan_ae, plan_ae_cost = parse_plan(sas_plan_ae_path)
+    plan_perf_justf = perfectly_justified(plan_ae)
     
-    list_pos_irr_actions=[]
-    for elemento in plan2:
-        if 'skip-action' in elemento:
-            numero = ''.join(filter(str.isdigit, elemento))
-            list_pos_irr_actions.append(int(numero)+1)
+    if(plan_perf_justf):
+        print("The plan is perfectly justified.")
+    else:
+        print("The plan is not perfectly justified.")
 
-    print()
-    #print(f"Irrelevant actions in the plan: {list_pos_irr_actions}\n")
+        # Extract causal links from the input plan
+        plan, plan_cost = parse_plan(sas_plan_file_path)
+        task, operator_name_to_index_map = parse_task(output_sas_file_path)
+        list_causal_links_sas_plan = extracting_causal_links(output_sas_file_path, plan, options.subsequence)
 
-    #list_causal_links = [(0, 'Atom ontable(c)', 1), (0, 'Atom ontable(d)', -1), (0, 'Atom clear(c)', 1), (2, 'Atom clear(c)', -1), (0, 'Atom clear(d)', 2), (0, 'Atom clear(b)', 4), (0, 'Atom handempty()', 1), (2, 'Atom handempty()', -1), (4, 'Atom handempty()', -1), (0, 'Atom ontable(b)', -1), (0, 'Atom ontable(a)', 3), (0, 'Atom clear(a)', 3), (4, 'Atom clear(a)', -1), (1, 'NegatedAtom clear(c)', -1), (1, 'NegatedAtom handempty()', -1), (3, 'NegatedAtom handempty()', 4), (1, 'Atom holding(c)', -1), (2, 'NegatedAtom clear(d)', -1), (2, 'Atom on(c, d)', -1), (3, 'NegatedAtom clear(a)', 4), (3, 'Atom holding(a)', 4), (4, 'NegatedAtom clear(b)', -1), (4, 'Atom on(a, b)', -1)]
-   
-          
-    # for i in range(len(plan1)):
-    #     todos_menos_uno = True
-    #     irr = False
-    #     temp_list = []
-        
-    #     for j in range(len(list_causal_links)):
-    #         elemento = list_causal_links[j]
-    #         if elemento[0] == i and i in list_pos_irr_actions:
-    #             irr = True
-    #             temp_list.append(elemento)
+        # Extract causal link from the justified plan (with skip actions).
+        task_ae, ae_operator_name_to_index_map = parse_task(ae_sas_file_path) 
+        list_causal_links_sas_plan_ae = extracting_causal_links(ae_sas_file_path, plan_ae, options.subsequence)
 
-    #     for elemento in temp_list:
-    #         if elemento[2] != -1:
-    #             todos_menos_uno = False
-    #             break
+        # Convert it into a dictionary where the keys represent the consumers and the values are lists of (producers, fact) to simplify the search for causal chains
+        ordered_dict = convert_to_dict(list_causal_links_sas_plan)
 
-    #     if todos_menos_uno and irr:
-    #         print(f"Action #{i}", plan1[i], " is irrelevant since it produces facts that are not consumed by anyone.")
-          
+        # Obtain the causal chain 
+        causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
+        print(causal_chain_list) 
+
+    #TODO: CONTINUE
 
 
-
-
-        
-
-
-
-
-
-
-
-    # dict_case1 = {}
-    # list_case2 = []
-    # list_case3 = []
-
-    # for i in range(len(list_causal_links)):
-    #     elemento = list_causal_links[i]
-    #     if elemento[0] in list_pos_irr_actions:            
-    #         if  elemento[2]==-1: 
-    #             # Case 1: What irrelevant actions produce is not consumed by anyone
-    #             key = str(elemento[0])  # Convertir el primer elemento de la tupla a cadena
-    #             value = elemento[1]  # Segundo elemento de la tupla
-    #             if key in dict_case1:
-    #                 dict_case1[key].append(value)
-    #             else:
-    #                 dict_case1[key] = [value]
-                
-                
-    #     #     elif elemento[2] in list_pos_irr_actions:
-    #     #         # Case 2: What irrelevant actions produce are consumed only by irrelevant actions
-    #     #         list_case2.append(elemento)
-    #     # else:
-    #     #     # Case #3: Presence of at least one relevant action in the causal link
-    #     #     list_case3.append(elemento)
-
-    
-    # if bool(dict_case1):
-    #     for key, values in dict_case1.items():
-    #         print(f"Action #{key}", plan1[int(key)-1], " is irrelevant since it produces", ", ".join(values), "that are facts that are not consumed by anyone.")
-  
 if __name__ == '__main__':
     main()

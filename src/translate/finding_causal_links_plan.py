@@ -6,6 +6,7 @@ from copy import deepcopy
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
+
 # TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. Why does this happen?
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
     if ordered:
@@ -91,17 +92,6 @@ def getting_var_pre_post_list(new_operators):
         effects_actions_list.append(effects_temp)
 
     final_precond_effects_list = list(zip(precond_actions_list, effects_actions_list))
-
-        #var_pre_pos_list = []
-    # for i in range(len(new_operators)):
-    #     pre_post=new_operators[i].pre_post
-    #     for j in range(len(pre_post)):
-    #         var = precond = pre_post[j][0]
-    #         precond = pre_post[j][1]
-    #         effects = pre_post[j][2]
-    #         var_pre_pos_list.append((var,precond, effects))
-    #     final_precond_effects_list.append(var_pre_pos_list)
-    #     var_pre_pos_list = []
 
     return final_precond_effects_list
     

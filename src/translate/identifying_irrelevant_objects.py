@@ -59,6 +59,7 @@ def identifying_irrelevant_objects(list_initial_state, list_goal_state, list_act
         print(f"Objects [{elementos}] are irrelevant.\n")
 
 def main():
+    #TODO: modificar par que sea con sas+
     parser = argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)

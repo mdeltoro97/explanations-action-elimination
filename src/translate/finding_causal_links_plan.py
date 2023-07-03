@@ -194,21 +194,26 @@ def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_
     return sorted(causal_chain_list)
 
 def main():
+    #TODO: cómo llamar desde aquí al symk pues necesito los planes que genera para mi algoritno
+    #TODO: qué parámetros debería recibir mi main?
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-d', '--domain', help='Path to domain file.',type=str, required=True)
     required_named.add_argument('-p', '--problem', help='Path to problem file.', type=str, required=True)
+    #TODO: este nuevo argumento está ok?
+    required_named.add_argument('-plan', '--plan', help='Path to sas plan file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
     options = parser.parse_args()
 
     # Check files required as parameters
-    if options.domain == None or options.problem == None:
+    if options.domain == None or options.problem == None or options.plan == None:
         parser.print_help()
         sys.exit(2)
 
     # Generate SAS+ representation from a domain and problem -> output.sas
     domain_path = options.domain
     problem_path = options.problem
+    #TODO: preguntarle a mauricio como llamar a esto desde el driver y lo mismo para las dudas de más abajo
     executing_fast_downward(domain_path, problem_path)
 
     # Solve the planning task 

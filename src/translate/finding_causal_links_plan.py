@@ -147,16 +147,6 @@ def extracting_causal_links(planning_task_path, plan, ordered):
                 else:
                     list_final.append((producers[j], causal_link_temp[1], -1))
     return list_final
-
-def causal_chain(elements,ordered_dict, element, list_temp):
-    for val in elements:
-        if val != element:
-            if val not in list_temp:
-                list_temp.append(val)
-                list_temp2 = ordered_dict.get(val,[])
-                elements2 = list(set([valor[0] for valor in list_temp2]))
-                causal_chain(elements2,ordered_dict, element, list_temp)
-    return list_temp
     
 def convert_to_dict(list_causal_links_sas_plan):
     dict_consumer_producer = {}
@@ -177,32 +167,38 @@ def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan
             return True
     return False
 
+def causal_chain(elements,ordered_dict, element, list_temp):
+    for val in elements:
+        if val not in list_temp:
+            list_temp.append(val)
+            list_temp2 = ordered_dict.get(val,[])
+            elements2 = list(set([valor[0] for valor in list_temp2]))
+            causal_chain(elements2,ordered_dict, element, list_temp)
+    return list_temp
+    
 def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict):
     causal_chain_list = []
     for causal_link_temp in list_causal_links_sas_plan_ae:
         causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
         is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
+        # Identify the causal links of the justified plan that are not in the unjustified plan to find the casual chains
         if  is_in_sas_plan == False and causal_link_temp[2]!=-1:  
             for causal_link_dict in ordered_dict[causal_link_temp[2]]:
                 fact_renamed = task.variables.value_names[causal_link_dict[1][0]][causal_link_dict[1][1]]
                 if fact_renamed== causal_link_temp_renamed[1]:
-                    causal_chain_list.append(causal_link_dict[0])
                     list_temp = ordered_dict.get(causal_link_dict[0],[])
                     elements = list(set([value[0] for value in list_temp]))
-                    #TODO: Check this method, its doing something wrong
-                    # list_temp1=causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[])
-                    # causal_chain_list.append(sorted(list_temp1)) 
-                    causal_chain_list.extend(causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[]))  
-    return sorted(causal_chain_list)
+                    causal_chain_temp= [causal_link_dict[0]]
+                    causal_chain_temp.extend(causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[]))
+                    causal_chain_list.append((causal_link_temp,sorted(causal_chain_temp))) 
+    return causal_chain_list 
+   
 
 def main():
-    #TODO: cómo llamar desde aquí al symk pues necesito los planes que genera para mi algoritno
-    #TODO: qué parámetros debería recibir mi main?
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-d', '--domain', help='Path to domain file.',type=str, required=True)
     required_named.add_argument('-p', '--problem', help='Path to problem file.', type=str, required=True)
-    #TODO: este nuevo argumento está ok?
     required_named.add_argument('-plan', '--plan', help='Path to sas plan file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
     options = parser.parse_args()
@@ -254,7 +250,8 @@ def main():
         # Convert it into a dictionary where the keys represent the consumers and the values are lists of (producers, fact) to simplify the search for causal chains
         ordered_dict = convert_to_dict(list_causal_links_sas_plan)
 
-        # Obtain the causal chain 
+        # Obtain the causal chains
+        # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain of the unjustified plan
         causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
         print(causal_chain_list) 
 

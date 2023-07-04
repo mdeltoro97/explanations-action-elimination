@@ -38,7 +38,7 @@ def executing_fast_downward(domain_path,problem_path):
 def generating_ae_sas_file(output_sas_path, sas_plan_path):
     # action_elim file path
     # TODO: How to obtain the path to this file instead of getting it manually?
-    action_elim_path = 'action_elim.py'
+    action_elim_path = '../../src/translate/action_elim.py'
 
     # Build the command
     command = f'{sys.executable} {action_elim_path} -t {output_sas_path} -p {sas_plan_path} --reduction MLR --enhanced-fix-point --subsequence --add-pos-to-goal'
@@ -182,14 +182,16 @@ def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_
     for causal_link_temp in list_causal_links_sas_plan_ae:
         causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
         is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
-        if  is_in_sas_plan == False and causal_link_temp[2]!=-1:      
+        if  is_in_sas_plan == False and causal_link_temp[2]!=-1:  
             for causal_link_dict in ordered_dict[causal_link_temp[2]]:
                 fact_renamed = task.variables.value_names[causal_link_dict[1][0]][causal_link_dict[1][1]]
                 if fact_renamed== causal_link_temp_renamed[1]:
                     causal_chain_list.append(causal_link_dict[0])
                     list_temp = ordered_dict.get(causal_link_dict[0],[])
                     elements = list(set([value[0] for value in list_temp]))
-                    #TODO: Check this method
+                    #TODO: Check this method, its doing something wrong
+                    # list_temp1=causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[])
+                    # causal_chain_list.append(sorted(list_temp1)) 
                     causal_chain_list.extend(causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[]))  
     return sorted(causal_chain_list)
 
@@ -213,17 +215,15 @@ def main():
     # Generate SAS+ representation from a domain and problem -> output.sas
     domain_path = options.domain
     problem_path = options.problem
+    sas_plan_file_path= options.plan
     #TODO: preguntarle a mauricio como llamar a esto desde el driver y lo mismo para las dudas de más abajo
     executing_fast_downward(domain_path, problem_path)
 
-    # Solve the planning task 
-    # TODO:  When I run python3 ../../fast-downward.py output.sas --search "astar(hmax())" I don't get the sas_plan with irrelevant actions that I had before
-
     # Obtain the path of output.sas and sas_plan to generate the action_elim.sas file -> action-elimination.sas
-    # TODO: When I execute the commands, the results are automatically generated in the translate folder. How can I put them in the folder I want?
     # TODO: How to obtain the paths to these files instead of getting them manually?
+    #TODO: por qué si ejecuto desde domains/block me sobreescribe el fichero sas_plan?
     output_sas_file_path ="output.sas"
-    sas_plan_file_path = "../../domains/blocks/sas_plan"
+    #sas_plan_file_path = "sas_plan"
     generating_ae_sas_file(output_sas_file_path,sas_plan_file_path)
 
     # Solve the action elimination task using an optimal planner -> sas_plan
@@ -258,7 +258,7 @@ def main():
         causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
         print(causal_chain_list) 
 
-    #TODO: CONTINUE
+    # #TODO: CONTINUE
 
 
 if __name__ == '__main__':

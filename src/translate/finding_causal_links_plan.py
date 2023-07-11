@@ -148,11 +148,14 @@ def extracting_causal_links(planning_task_path, plan, ordered):
                     list_final.append((producers[j], causal_link_temp[1], -1))
     return list_final
     
-def convert_to_dict(list_causal_links_sas_plan):
+def convert_to_dict(list_causal_links_sas_plan,specified_key):
+    mapping = {1: (2,0), 2:(0,2)}
+    key_cons,value_prod = mapping.get(specified_key, (0,0))       
+
     dict_consumer_producer = {}
     for causal_link_temp in list_causal_links_sas_plan:
-        key = causal_link_temp[2]
-        value = (causal_link_temp[0],causal_link_temp[1])
+        key = causal_link_temp[key_cons]
+        value = (causal_link_temp[value_prod],causal_link_temp[1])
         if key in dict_consumer_producer:
             dict_consumer_producer[key].append(value)
         else:
@@ -209,28 +212,26 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
             print(f"{i+1} {plan[i]}")
     
     print()
-    explain = input("Do you want to generate explanations for the plan's actions? (Yes/No): ")
-
-    if explain.lower() != "no" and explain.lower() != "yes":
-        print("You have entered an invalid option.")
-    else: 
-        while explain.lower() == "yes" or explain.lower() == "no":
-            if explain.lower() == "no":
-                print("Explanation generation execution is finished.")
-                break;
-            else:
-                action_number = int(input("Enter the number of the action:"))
-                if 0<action_number<=len(plan):
-                    print("implement!!!")
+    while True:
+        explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
+   
+        if explain == "no":
+            print("Explanation generation execution is finished.")
+            break
+        elif explain == "yes":
+            action_number = int(input("Enter the number of the action: "))
+       
+            if 0 < action_number <= len(plan):
+                if action_number in list_pos_redundant_actions:
+                    print("\nThis action is redundant in the plan because:\n")
+                    producers_list = convert_to_dict(list_causal_links_sas_plan, 2)
+                    print(producers_list)
                 else:
-                    print("You have entered an invalid action number.")
-                explain= input("Would you like to generate more explanations? (Yes/No): ")
-                if explain.lower() != "no" and explain.lower() != "yes":
-                    print("You have entered an invalid option.")
-            
-  
-
-
+                    print("TODO")
+            else:
+                print("You have entered an invalid action number.")
+        else:
+            print("You have entered an invalid option.")
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -287,7 +288,7 @@ def main():
         list_causal_links_sas_plan_ae = extracting_causal_links(ae_sas_file_path, plan_ae, options.subsequence)
 
         # Convert it into a dictionary where the keys represent the consumers and the values are lists of (producers, fact) to simplify the search for causal chains
-        ordered_dict = convert_to_dict(list_causal_links_sas_plan)
+        ordered_dict = convert_to_dict(list_causal_links_sas_plan,1)
 
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain of the unjustified plan

@@ -192,7 +192,45 @@ def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_
                     causal_chain_temp.extend(causal_chain(elements,ordered_dict,causal_link_temp_renamed[0],[]))
                     causal_chain_list.append((causal_link_temp,sorted(causal_chain_temp))) 
     return causal_chain_list 
-   
+
+def pos_redundant_actions(sas_plan_ae):
+    list_pos_redundant_actions=[]
+    for action in sas_plan_ae:
+        if 'skip-action' in action:
+            pos = ''.join(filter(str.isdigit, action))
+            list_pos_redundant_actions.append(int(pos)+1)
+    return list_pos_redundant_actions
+
+def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,list_causal_links_sas_plan_ae, causal_chain_list): 
+    for i in range(len(plan)):
+        if (i+1) in list_pos_redundant_actions:
+            print(f"{i+1} (redundant action) --> {plan[i]}")
+        else:
+            print(f"{i+1} {plan[i]}")
+    
+    print()
+    explain = input("Do you want to generate explanations for the plan's actions? (Yes/No): ")
+
+    if explain.lower() != "no" and explain.lower() != "yes":
+        print("You have entered an invalid option.")
+    else: 
+        while explain.lower() == "yes" or explain.lower() == "no":
+            if explain.lower() == "no":
+                print("Explanation generation execution is finished.")
+                break;
+            else:
+                action_number = int(input("Enter the number of the action:"))
+                if 0<action_number<=len(plan):
+                    print("implement!!!")
+                else:
+                    print("You have entered an invalid action number.")
+                explain= input("Would you like to generate more explanations? (Yes/No): ")
+                if explain.lower() != "no" and explain.lower() != "yes":
+                    print("You have entered an invalid option.")
+            
+  
+
+
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -233,6 +271,7 @@ def main():
     plan_ae, plan_ae_cost = parse_plan(sas_plan_ae_path)
     plan_perf_justf = perfectly_justified(plan_ae)
     
+    print()
     if(plan_perf_justf):
         print("The plan is perfectly justified.")
     else:
@@ -253,9 +292,13 @@ def main():
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain of the unjustified plan
         causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
-        print(causal_chain_list) 
+        #print(causal_chain_list) 
 
-    # #TODO: CONTINUE
+        list_pos_redundant_actions = pos_redundant_actions(plan_ae)
+        #print(f"Positions of the redundant actions in the plan: {list_pos_redundant_actions}\n")
+
+        # Generating explanations for actions
+        generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,list_causal_links_sas_plan_ae, causal_chain_list)
 
 
 if __name__ == '__main__':

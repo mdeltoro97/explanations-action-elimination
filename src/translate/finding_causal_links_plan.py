@@ -265,13 +265,8 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
             break
         elif explain == "yes":
             action_number_input = input("Enter the number of the action: ")
-            # while not action_number_input.isdigit():
-            #     not action_number_input.isdigit():
-            #     action_number_input = input("\nEnter the number of the action: ")
-            # action_number = int(action_number_input)
             if not action_number_input.isdigit():
                 print("You have entered an invalid action number.")
-                continue
             else:
                 action_number = int(action_number_input)
                 if 0 < action_number <= len(plan):

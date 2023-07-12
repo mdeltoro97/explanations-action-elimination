@@ -204,14 +204,20 @@ def pos_redundant_actions(sas_plan_ae):
             list_pos_redundant_actions.append(int(pos)+1)
     return list_pos_redundant_actions
 
-def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,list_causal_links_sas_plan_ae, causal_chain_list): 
+def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list): 
     for i in range(len(plan)):
         if (i+1) in list_pos_redundant_actions:
             print(f"{i+1} (redundant action) --> {plan[i]}")
         else:
             print(f"{i+1} {plan[i]}")
     
+    relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
+    redundant_action_causal_links_dict = convert_to_dict(list_causal_links_sas_plan, 2)
+
+    print(relevant_action_causal_links_dict)
     print()
+    print(redundant_action_causal_links_dict)
+
     while True:
         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
    
@@ -220,14 +226,22 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
             break
         elif explain == "yes":
             action_number = int(input("Enter the number of the action: "))
-       
             if 0 < action_number <= len(plan):
+                print(f"\nAction #{action_number}: {plan[action_number-1]}")
                 if action_number in list_pos_redundant_actions:
-                    print("\nThis action is redundant in the plan because:\n")
-                    producers_list = convert_to_dict(list_causal_links_sas_plan, 2)
-                    print(producers_list)
+                    print("This action is redundant in the plan because:\n")
+                    
                 else:
-                    print("TODO")
+                    # Obtain the list of tuples containing the form (producer, fact) of the relevant action
+                    producers_list = relevant_action_causal_links_dict.get(action_number,[])
+                    print(f"In order for this relevant action to be executed, it requires:")
+                    for element in producers_list:
+                        producer, (var_index, val_index) = element
+                        fact = task_ae.variables.value_names[var_index][val_index]
+                        if producer == 0:
+                                print(f"--> {fact} as a precondition which is obtained from the initial state.")
+                        else:
+                                print(f"--> {fact} as a precondition which is obtained through the effects produced by action {producer}.")
             else:
                 print("You have entered an invalid action number.")
         else:
@@ -299,8 +313,9 @@ def main():
         #print(f"Positions of the redundant actions in the plan: {list_pos_redundant_actions}\n")
 
         # Generating explanations for actions
-        generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,list_causal_links_sas_plan_ae, causal_chain_list)
+        generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list)
 
+        #TODO: hacer un método que explique de forma general las cadenas causales obtenidas y otro que sea sobre los objetos irrelevantes
 
 if __name__ == '__main__':
     main()

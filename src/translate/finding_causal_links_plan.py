@@ -233,14 +233,24 @@ def get_redundant_producer(action_number, fact, task_ae, causal_chain_list):
 
 def get_relevant_causal_links(relevant_action_causal_links, task_ae):
     list_explanations = []
+    list_fact_produced_initial_state = []
+   
     for causal_link_temp in relevant_action_causal_links:
-        fact = task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
-        producer = causal_link_temp[0] 
+        fact_index = causal_link_temp[1]
+        fact = task_ae.variables.value_names[fact_index[0]][fact_index[1]]
+        producer = causal_link_temp[0]
+       
         if producer == 0:
-            str =f"{fact} as a precondition which is obtained from the initial state"
+            list_fact_produced_initial_state.append(fact)
         else:
-            str= f"{fact} as a precondition which is obtained through the effects produced by the relevant action {producer}"
-        list_explanations.append(str)
+            str = f"{fact} as a precondition which is obtained through the effects produced by the relevant action {producer}"
+            list_explanations.append(str)
+   
+    if len(list_fact_produced_initial_state) > 1:
+        facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state"
+    else:
+        facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state"
+    list_explanations.append(facts_str)
     return list_explanations
 
 def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list): 
@@ -278,20 +288,27 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
                             if len(relevant_causal_links)==1:
                                 rel_expl_str = relevant_causal_links[0]
                             else:
-                                rel_expl_str = ', '.join(relevant_causal_links[:-1])+' and ' + relevant_causal_links[-1]
+                                rel_expl_str = ', '.join(relevant_causal_links[:-1])+'. Also needs ' + relevant_causal_links[-1]
                             print(f"--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}.")
                 else:
                     # Obtain the list of tuples containing the form (producer, fact) of the relevant action
                     producers_list = relevant_action_causal_links_dict.get(action_number,[])
-                    print(f"In order for this relevant action to be executed, it requires the fact:")
+                    print(f"In the justified plan, in order for this relevant action to be executed, it requires the fact:")
+                    list_fact_produced_initial_state = []
                     for element in producers_list:
                         producer, (var_index, val_index) = element
                         fact = task_ae.variables.value_names[var_index][val_index]
                         if producer == 0:
-                            print(f"--> {fact} as a precondition which is obtained from the initial state.")
+                            #print(f"--> {fact} as a precondition which is obtained from the initial state.")
+                            list_fact_produced_initial_state.append(fact)
                         else:
                             redundant_action = get_redundant_producer(action_number, fact, task_ae, causal_chain_list)
                             print(f"--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}.")
+                    if len(list_fact_produced_initial_state) > 1:
+                        facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state"
+                    else:
+                        facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state"
+                    print(f"--> {facts_str}")
             else:
                 print("You have entered an invalid action number.")
         else:

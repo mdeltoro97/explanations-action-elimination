@@ -217,7 +217,6 @@ def convert_to_dict_producer_fact(list_action_fact):
     return dict_final
 
 def show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions):
-    #TODO: imprimir un cartel que diga que este plan es el justificado lo que se muestran las acciones redundantes que s equitan
     print("\nPerfectly justified plan (the redundant actions contained in the unjustified plan are shown)")
     for i in range(len(plan)):
         if (i+1) in list_pos_redundant_actions:
@@ -400,7 +399,7 @@ def main():
         # Generating explanations for actions
         generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list)
 
-        #TODO: hacer un método que explique de forma general las cadenas causales obtenidas y otro que sea sobre los objetos irrelevantes
+        #TODO: HACER un método que explique de forma general las cadenas causales obtenidas y otro que sea sobre los objetos irrelevantes
 
 if __name__ == '__main__':
     main()

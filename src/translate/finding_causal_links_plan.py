@@ -204,6 +204,18 @@ def pos_redundant_actions(sas_plan_ae):
             list_pos_redundant_actions.append(int(pos)+1)
     return list_pos_redundant_actions
 
+def convert_to_dict_producer_fact(list_action_fact):
+    dict_final = {}
+    for tuple in list_action_fact:
+        key = tuple[0]
+        value = tuple[1]
+
+        if key in dict_final:
+            dict_final[key].append(value)
+        else:
+            dict_final[key] = [value]
+    return dict_final
+
 def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list): 
     for i in range(len(plan)):
         if (i+1) in list_pos_redundant_actions:
@@ -214,13 +226,8 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
     relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
     redundant_action_causal_links_dict = convert_to_dict(list_causal_links_sas_plan, 2)
 
-    print(relevant_action_causal_links_dict)
-    print()
-    print(redundant_action_causal_links_dict)
-
     while True:
         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
-   
         if explain == "no":
             print("Explanation generation execution is finished.")
             break
@@ -229,8 +236,23 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
             if 0 < action_number <= len(plan):
                 print(f"\nAction #{action_number}: {plan[action_number-1]}")
                 if action_number in list_pos_redundant_actions:
-                    print("This action is redundant in the plan because:\n")
-                    
+                    consumers_list = redundant_action_causal_links_dict.get(action_number,[])
+                    dict_temp = convert_to_dict_producer_fact(consumers_list)
+                    print("This action is redundant in the plan because produces:")
+                    for consumer,fact_list in dict_temp.items():
+                        fact_list_renamed = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
+                        facts_str = ""
+                        if len(fact_list)==1:
+                            facts_str = fact_list_renamed[0]
+                        else:
+                            facts_str = ', '.join(fact_list_renamed[:-1])+' and ' + fact_list_renamed[-1]
+                        if consumer == -1:
+                            print(f"--> {facts_str} that is not consumed by any other action.")
+                        elif consumer in list_pos_redundant_actions:
+                            print(f"--> {facts_str} which is consumed by the action {consumer} also redundant.")
+                        else:
+                            #TODO: hacer la parte de las explicaciones cdo el consumer es relevante
+                            print("")
                 else:
                     # Obtain the list of tuples containing the form (producer, fact) of the relevant action
                     producers_list = relevant_action_causal_links_dict.get(action_number,[])
@@ -239,9 +261,27 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
                         producer, (var_index, val_index) = element
                         fact = task_ae.variables.value_names[var_index][val_index]
                         if producer == 0:
-                                print(f"--> {fact} as a precondition which is obtained from the initial state.")
+                            print(f"--> {fact} as a precondition which is obtained from the initial state.")
                         else:
-                                print(f"--> {fact} as a precondition which is obtained through the effects produced by action {producer}.")
+                             #TODO: Anadir que en el plan con acciones irrelevantes de donde se obtenia 
+                            print(f"--> {fact} as a precondition which is obtained through the effects produced by action {producer}.")
+
+                    # # Obtain the list of tuples containing the form (producer, fact) of the relevant action
+                    # producers_list = relevant_action_causal_links_dict.get(action_number,[])
+                    # dict_temp = convert_to_dict_producer_fact(producers_list)
+                    # print(f"In order for this relevant action to be executed, it requires:")
+                    # for producer,fact_list in dict_temp.items():
+                    #     fact_list_renamed = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
+                    #     if len(fact_list)==1:
+                    #         facts_str = fact_list_renamed[0]
+                    #     else:
+                    #         facts_str = ', '.join(fact_list_renamed[:-1])+' and ' + fact_list_renamed[-1]
+                        
+                    #     if producer == 0:
+                    #         print(f"--> {facts_str} from the initial state.")
+                    #     else:
+                    #         #TODO: Anadir que en el plan con acciones irrelevantes de donde se obtenia 
+                    #         print(f"--> {facts_str} from action {producer}.")
             else:
                 print("You have entered an invalid action number.")
         else:

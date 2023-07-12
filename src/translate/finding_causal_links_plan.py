@@ -253,10 +253,72 @@ def get_relevant_causal_links(relevant_action_causal_links, task_ae):
     list_explanations.append(facts_str)
     return list_explanations
 
-def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list): 
+# def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list): 
+
+#     relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
+#     redundant_action_causal_links_dict = convert_to_dict(list_causal_links_sas_plan, 2)
+
+#     while True:
+#         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
+#         if explain == "no":
+#             print("Explanation generation execution is finished.")
+#             break
+#         elif explain == "yes":
+#             action_number = int(input("Enter the number of the action: "))
+#             if 0 < action_number <= len(plan):
+#                 print(f"\nAction #{action_number}: {plan[action_number-1]}")
+#                 if action_number in list_pos_redundant_actions:
+#                     consumers_list = redundant_action_causal_links_dict.get(action_number,[])
+#                     dict_temp = convert_to_dict_producer_fact(consumers_list)
+#                     print("This action is redundant in the plan because produces:")
+#                     for consumer,fact_list in dict_temp.items():
+#                         fact_list_renamed = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
+#                         facts_str = ""
+#                         if len(fact_list)==1:
+#                             facts_str = fact_list_renamed[0]
+#                         else:
+#                             facts_str = ', '.join(fact_list_renamed[:-1])+' and ' + fact_list_renamed[-1]
+#                         if consumer == -1:
+#                             print(f"--> {facts_str} that is not consumed by any other action.")
+#                         elif consumer in list_pos_redundant_actions:
+#                             print(f"--> {facts_str} which is consumed by the action {consumer} also redundant.")
+#                         else:
+#                             relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task_ae)
+#                             rel_expl_str = ""
+#                             if len(relevant_causal_links)==1:
+#                                 rel_expl_str = relevant_causal_links[0]
+#                             else:
+#                                 rel_expl_str = ', '.join(relevant_causal_links[:-1])+'. Also needs ' + relevant_causal_links[-1]
+#                             print(f"--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}.")
+#                 else:
+#                     # Obtain the list of tuples containing the form (producer, fact) of the relevant action
+#                     producers_list = relevant_action_causal_links_dict.get(action_number,[])
+#                     print(f"In the justified plan, in order for this relevant action to be executed, it requires the fact:")
+#                     list_fact_produced_initial_state = []
+#                     for element in producers_list:
+#                         producer, (var_index, val_index) = element
+#                         fact = task_ae.variables.value_names[var_index][val_index]
+#                         if producer == 0:
+#                             #print(f"--> {fact} as a precondition which is obtained from the initial state.")
+#                             list_fact_produced_initial_state.append(fact)
+#                         else:
+#                             redundant_action = get_redundant_producer(action_number, fact, task_ae, causal_chain_list)
+#                             print(f"--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}.")
+#                     if len(list_fact_produced_initial_state) > 1:
+#                         facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state"
+#                     else:
+#                         facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state"
+#                     print(f"--> {facts_str}")
+#             else:
+#                 print("You have entered an invalid action number.")
+#         else:
+#             print("You have entered an invalid option.")
+
+def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task, task_ae, causal_chain_list):
 
     relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
     redundant_action_causal_links_dict = convert_to_dict(list_causal_links_sas_plan, 2)
+    explanations_dict = {}
 
     while True:
         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
@@ -266,49 +328,54 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
         elif explain == "yes":
             action_number = int(input("Enter the number of the action: "))
             if 0 < action_number <= len(plan):
-                print(f"\nAction #{action_number}: {plan[action_number-1]}")
-                if action_number in list_pos_redundant_actions:
-                    consumers_list = redundant_action_causal_links_dict.get(action_number,[])
-                    dict_temp = convert_to_dict_producer_fact(consumers_list)
-                    print("This action is redundant in the plan because produces:")
-                    for consumer,fact_list in dict_temp.items():
-                        fact_list_renamed = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
-                        facts_str = ""
-                        if len(fact_list)==1:
-                            facts_str = fact_list_renamed[0]
-                        else:
-                            facts_str = ', '.join(fact_list_renamed[:-1])+' and ' + fact_list_renamed[-1]
-                        if consumer == -1:
-                            print(f"--> {facts_str} that is not consumed by any other action.")
-                        elif consumer in list_pos_redundant_actions:
-                            print(f"--> {facts_str} which is consumed by the action {consumer} also redundant.")
-                        else:
-                            relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task_ae)
-                            rel_expl_str = ""
-                            if len(relevant_causal_links)==1:
-                                rel_expl_str = relevant_causal_links[0]
-                            else:
-                                rel_expl_str = ', '.join(relevant_causal_links[:-1])+'. Also needs ' + relevant_causal_links[-1]
-                            print(f"--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}.")
+                if action_number in explanations_dict:
+                    print(explanations_dict[action_number])                   
                 else:
-                    # Obtain the list of tuples containing the form (producer, fact) of the relevant action
-                    producers_list = relevant_action_causal_links_dict.get(action_number,[])
-                    print(f"In the justified plan, in order for this relevant action to be executed, it requires the fact:")
-                    list_fact_produced_initial_state = []
-                    for element in producers_list:
-                        producer, (var_index, val_index) = element
-                        fact = task_ae.variables.value_names[var_index][val_index]
-                        if producer == 0:
-                            #print(f"--> {fact} as a precondition which is obtained from the initial state.")
-                            list_fact_produced_initial_state.append(fact)
-                        else:
-                            redundant_action = get_redundant_producer(action_number, fact, task_ae, causal_chain_list)
-                            print(f"--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}.")
-                    if len(list_fact_produced_initial_state) > 1:
-                        facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state"
+                    explanation_str = ""
+                    explanation_str += f"\nAction #{action_number}: {plan[action_number-1]}\n"
+                    if action_number in list_pos_redundant_actions:
+                        consumers_list = redundant_action_causal_links_dict.get(action_number, [])
+                        dict_temp = convert_to_dict_producer_fact(consumers_list)
+                        explanation_str += "This action is redundant in the plan because it produces:\n"
+                        for consumer, fact_list in dict_temp.items():
+                            fact_list_renamed = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
+                            facts_str = ""
+                            if len(fact_list) == 1:
+                                facts_str = fact_list_renamed[0]
+                            else:
+                                facts_str = ', '.join(fact_list_renamed[:-1]) + ' and ' + fact_list_renamed[-1]
+                            if consumer == -1:
+                                explanation_str += f"--> {facts_str} that is not consumed by any other action.\n"
+                            elif consumer in list_pos_redundant_actions:
+                                explanation_str += f"--> {facts_str} which is consumed by the action {consumer} also redundant.\n"
+                            else:
+                                relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task_ae)
+                                rel_expl_str = ""
+                                if len(relevant_causal_links) == 1:
+                                    rel_expl_str = relevant_causal_links[0]
+                                else:
+                                    rel_expl_str = ', '.join(relevant_causal_links[:-1]) + ' and ' + relevant_causal_links[-1]
+                                explanation_str += f"--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}.\n"
                     else:
-                        facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state"
-                    print(f"--> {facts_str}")
+                        producers_list = relevant_action_causal_links_dict.get(action_number, [])
+                        explanation_str += "In the justified plan, in order for this relevant action to be executed, it requires the fact:\n"
+                        list_fact_produced_initial_state = []
+                        for element in producers_list:
+                            producer, (var_index, val_index) = element
+                            fact = task_ae.variables.value_names[var_index][val_index]
+                            if producer == 0:
+                                list_fact_produced_initial_state.append(fact)
+                            else:
+                                redundant_action = get_redundant_producer(action_number, fact, task_ae, causal_chain_list)
+                                explanation_str += f"--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}.\n"
+                        if len(list_fact_produced_initial_state) > 1:
+                            facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state."
+                        else:
+                            facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state."
+                        explanation_str += f"--> {facts_str}\n"
+                        
+                    explanations_dict[action_number] = explanation_str
+                    print(explanation_str)
             else:
                 print("You have entered an invalid action number.")
         else:

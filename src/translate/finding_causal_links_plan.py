@@ -218,6 +218,7 @@ def convert_to_dict_producer_fact(list_action_fact):
 
 def show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions):
     #TODO: imprimir un cartel que diga que este plan es el justificado lo que se muestran las acciones redundantes que s equitan
+    print("\nPerfectly justified plan (the redundant actions contained in the unjustified plan are shown)")
     for i in range(len(plan)):
         if (i+1) in list_pos_redundant_actions:
             print(f"{i+1} (redundant action) --> {plan[i]}")
@@ -229,7 +230,19 @@ def get_redundant_producer(action_number, fact, task_ae, causal_chain_list):
     for causal_link_and_chain in causal_chain_list:
         if causal_link_and_chain[0][2]== action_number and fact == task_ae.variables.value_names[causal_link_and_chain[0][1][0]][causal_link_and_chain[0][1][1]]:
             return causal_link_and_chain[1][-1]
-            
+
+def get_relevant_causal_links(relevant_action_causal_links, task_ae):
+    list_explanations = []
+    for causal_link_temp in relevant_action_causal_links:
+        fact = task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
+        producer = causal_link_temp[0] 
+        if producer == 0:
+            str =f"{fact} as a precondition which is obtained from the initial state"
+        else:
+            str= f"{fact} as a precondition which is obtained through the effects produced by the relevant action {producer}"
+        list_explanations.append(str)
+    return list_explanations
+
 def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list): 
 
     relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
@@ -260,12 +273,16 @@ def generating_explanations(plan, list_pos_redundant_actions,list_causal_links_s
                         elif consumer in list_pos_redundant_actions:
                             print(f"--> {facts_str} which is consumed by the action {consumer} also redundant.")
                         else:
-                            #TODO: hacer la parte de las explicaciones cdo el consumer es relevante
-                            print("")
+                            relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task_ae)
+                            rel_expl_str = ""
+                            if len(relevant_causal_links)==1:
+                                rel_expl_str = relevant_causal_links[0]
+                            else:
+                                rel_expl_str = ', '.join(relevant_causal_links[:-1])+' and ' + relevant_causal_links[-1]
+                            print(f"--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}.")
                 else:
                     # Obtain the list of tuples containing the form (producer, fact) of the relevant action
                     producers_list = relevant_action_causal_links_dict.get(action_number,[])
-                    
                     print(f"In order for this relevant action to be executed, it requires the fact:")
                     for element in producers_list:
                         producer, (var_index, val_index) = element

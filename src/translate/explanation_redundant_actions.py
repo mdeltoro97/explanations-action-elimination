@@ -278,7 +278,7 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
                         if action_number in list_pos_redundant_actions:
                             consumers_list = redundant_action_causal_links_dict.get(action_number, [])
                             dict_temp = convert_to_dict_producer_fact(consumers_list)
-                            explanation_str += "This action is redundant in the plan because it produces:\n"
+                            explanation_str += "This action is redundant in the plan because it produces:"
                             for consumer, fact_list in dict_temp.items():
                                 fact_list_renamed = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
                                 facts_str = ""
@@ -287,9 +287,9 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
                                 else:
                                     facts_str = ', '.join(fact_list_renamed[:-1]) + ' and ' + fact_list_renamed[-1]
                                 if consumer == -1:
-                                    explanation_str += f"--> {facts_str} that is not consumed by any other action.\n"
+                                    explanation_str += f"\n--> {facts_str} that is not consumed by any other action."
                                 elif consumer in list_pos_redundant_actions:
-                                    explanation_str += f"--> {facts_str} which is consumed by the action {consumer} also redundant.\n"
+                                    explanation_str += f"\n--> {facts_str} which is consumed by the action {consumer} also redundant."
                                 else:
                                     relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task_ae)
                                     rel_expl_str = ""
@@ -297,10 +297,10 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
                                         rel_expl_str = relevant_causal_links[0]
                                     else:
                                         rel_expl_str = ', '.join(relevant_causal_links[:-1]) + ' and ' + relevant_causal_links[-1]
-                                    explanation_str += f"--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}.\n"
+                                    explanation_str += f"\n--> {facts_str} which is consumed by the action {consumer} that is relevant. Action {consumer} in the justified plan needs {rel_expl_str}."
                         else:
                             producers_list = relevant_action_causal_links_dict.get(action_number, [])
-                            explanation_str += "In the justified plan, in order for this relevant action to be executed, it requires the fact:\n"
+                            explanation_str += "In the justified plan, in order for this relevant action to be executed, it requires the fact:"
                             list_fact_produced_initial_state = []
                             for element in producers_list:
                                 producer, (var_index, val_index) = element
@@ -309,12 +309,12 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
                                     list_fact_produced_initial_state.append(fact)
                                 else:
                                     redundant_action = get_redundant_producer(action_number, fact, task_ae, causal_chain_list)
-                                    explanation_str += f"--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}.\n"
+                                    explanation_str += f"\n--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}."
                             if len(list_fact_produced_initial_state) > 1:
                                 facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state."
                             else:
                                 facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state."
-                            explanation_str += f"--> {facts_str}\n"
+                            explanation_str += f"\n--> {facts_str}"
                         
                         explanations_dict[action_number] = explanation_str
                         print(explanation_str)
@@ -397,14 +397,14 @@ def showing_causal_chains(causal_chain_list, task_ae):
                 explanation_str += f"action {causal_link[0] }"
             explanation_str += f" and is consumed by action {causal_link[2]} in the justified plan. In the unjustified plan, this fact would be obtained through the following causal chain of actions: "
             producer = causal_link[0]
-            # Crear el string resultante
+
             causal_chain_str = ""
-            encontrado = False
-            for elemento in causal_chain:
-                if elemento == producer:
-                    encontrado = True
-                if encontrado and elemento!=0:
-                    causal_chain_str += str(elemento) + ","
+            found = False
+            for action in causal_chain:
+                if action == producer:
+                    found = True
+                if found and action!=0:
+                    causal_chain_str += str(action) + ","
             explanation_str += causal_chain_str.rstrip(",")
             print(explanation_str)
     else:
@@ -487,8 +487,6 @@ def main():
 
         # Generating explanations for actions
         generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list)
-
-        #TODO: HACER un método que explique de forma general las cadenas causales obtenidas 
 
 if __name__ == '__main__':
     main()

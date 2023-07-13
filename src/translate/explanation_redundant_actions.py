@@ -338,42 +338,78 @@ def obtaining_objects_from_actions(init_values_list,task):
                         list_objects.append(object_temp)
     return list_objects
 
-def identifying_irrelevant_objects(task, list_actions_plan, list_pos_redundant_actions):
-    init_values_list = []
-    for i in range(len(task.init.values)):
-        var = task.init.values[i]
-        fact=(i, var)
-        init_values_list.append(fact)
+def identifying_redundant_objects(task, list_actions_plan, list_pos_redundant_actions):
+    show_irrelevant_objects = input("\nWould you like to obtain redundant objects? (Yes/No): ").lower()
+    if show_irrelevant_objects == "no":
+        print("Obtaining redundant objects finished.")
+    elif show_irrelevant_objects == "yes":
+        init_values_list = []
+        for i in range(len(task.init.values)):
+            var = task.init.values[i]
+            fact=(i, var)
+            init_values_list.append(fact)
     
-    list_objects_initial_state = obtaining_objects_from_actions(init_values_list, task)
+        list_objects_initial_state = obtaining_objects_from_actions(init_values_list, task)
 
-    goal_values_list = []
-    for i in range(len(task.goal.pairs)):
-        fact = task.goal.pairs[i]
-        goal_values_list.append(fact) 
+        goal_values_list = []
+        for i in range(len(task.goal.pairs)):
+            fact = task.goal.pairs[i]
+            goal_values_list.append(fact) 
 
-    list_objects_goal_state = obtaining_objects_from_actions(goal_values_list,task)
+        list_objects_goal_state = obtaining_objects_from_actions(goal_values_list,task)
     
-    #Identifying non-goal state objects that could be irrelevant if not included in relevant actions.
-    list_objects = [obj for obj in list_objects_initial_state if obj not in list_objects_goal_state]
+        #Identifying non-goal state objects that could be irrelevant if not included in relevant actions.
+        list_objects = [obj for obj in list_objects_initial_state if obj not in list_objects_goal_state]
 
-    # Objects present in relevant actions are considered relevant, regardless of their presence in the goal state; otherwise, they are not considered relevant.
-    for i, action in enumerate(list_actions_plan):
-        if (i+1) not in list_pos_redundant_actions:
-           objects = action[action.find(' ') + 1:-1].split()
-           for temp in objects:
-                if temp in list_objects:
-                    list_objects.remove(temp)
-    # Printing irrelevant objects, in case they exist (those not found in relevant actions) 
-    if len(list_objects) == 0:
-        print('\nThere are no irrelevant objects.\n')   
-    else:
-        if len(list_objects) > 1:
-            objects_str = ", ".join(list_objects[:-1]) + " and " + list_objects[-1]
-            print(f"\nObjects {objects_str} are irrelevant because they are not used in any relevant action.")
+        # Objects present in relevant actions are considered relevant, regardless of their presence in the goal state; otherwise, they are not considered relevant.
+        for i, action in enumerate(list_actions_plan):
+            if (i+1) not in list_pos_redundant_actions:
+                objects = action[action.find(' ') + 1:-1].split()
+                for temp in objects:
+                    if temp in list_objects:
+                        list_objects.remove(temp)
+        # Printing irrelevant objects, in case they exist (those not found in relevant actions) 
+        if len(list_objects) == 0:
+            print('\nThere are no irrelevant objects.\n')   
+        elif len(list_objects) > 1:
+                objects_str = ", ".join(list_objects[:-1]) + " and " + list_objects[-1]
+                print(f"--> Objects {objects_str} are irrelevant because they are not used in any relevant action.")
         else:
-            objects_str = list_objects[0] 
-            print(f"\nObject {objects_str} is irrelevant because it is not used in any relevant action.")
+                objects_str = list_objects[0] 
+                print(f"--> Object {objects_str} is irrelevant because it is not used in any relevant action.")
+    else:
+        print("You have entered an invalid option.")
+    
+def showing_causal_chains(causal_chain_list, task_ae):
+    show_causal_chains = input("\nWould you like to obtain the causal chains present in the unjustified plan? (Yes/No): ").lower()
+    if show_causal_chains == "no":
+        print("Obtaining causal chains finished.")
+    elif show_causal_chains == "yes":
+        for causal_link_chain in causal_chain_list:
+            explanation_str=""
+            causal_link = causal_link_chain[0]
+            causal_chain = causal_link_chain[1]
+            fact_instantiated = task_ae.variables.value_names[causal_link[1][0]][causal_link[1][1]]
+            explanation_str = f"--> Fact {fact_instantiated} is produced by the "
+            if causal_link[0] == 0:
+                explanation_str += "initial state"
+            else:
+                explanation_str += f"action {causal_link[0] }"
+            explanation_str += f" and is consumed by action {causal_link[2]} in the justified plan. In the unjustified plan, this fact would be obtained through the following causal chain of actions: "
+            producer = causal_link[0]
+            # Crear el string resultante
+            causal_chain_str = ""
+            encontrado = False
+            for elemento in causal_chain:
+                if elemento == producer:
+                    encontrado = True
+                if encontrado and elemento!=0:
+                    causal_chain_str += str(elemento) + ","
+            explanation_str += causal_chain_str.rstrip(",")
+            print(explanation_str)
+    else:
+        print("You have entered an invalid option.")
+   
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -444,7 +480,10 @@ def main():
         show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions)
 
         # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
-        identifying_irrelevant_objects(task, plan, list_pos_redundant_actions)
+        identifying_redundant_objects(task, plan, list_pos_redundant_actions)
+
+        # Show causal chains
+        showing_causal_chains(causal_chain_list, task_ae)
 
         # Generating explanations for actions
         generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list)

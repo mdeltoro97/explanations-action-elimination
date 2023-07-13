@@ -1,3 +1,21 @@
+#!/usr/bin/env python3
+
+#######################################################################
+#
+# Author: 
+# Copyright 2023
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#######################################################################
+
+"""
+TODO -> explain the stuff
+"""
+
+
+
 import argparse
 import subprocess
 import sys
@@ -414,40 +432,49 @@ def showing_causal_chains(causal_chain_list, task_ae):
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
-    required_named.add_argument('-d', '--domain', help='Path to domain file.',type=str, required=True)
-    required_named.add_argument('-p', '--problem', help='Path to problem file.', type=str, required=True)
-    required_named.add_argument('-plan', '--plan', help='Path to sas plan file.', type=str, required=True)
+    # required_named.add_argument('-d', '--domain', help='Path to domain file.',type=str, required=True)
+    # required_named.add_argument('-p', '--problem', help='Path to problem file.', type=str, required=True)
+    # required_named.add_argument('-plan', '--plan', help='Path to sas plan file.', type=str, required=True)
+    # parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
+    # options = parser.parse_args()
+
+    required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)
+    required_named.add_argument('-a', '--aetask', help='Path to AE task file in SAS+ format.',type=str, required=True)
+    required_named.add_argument('-p', '--plan', help='Path to original plan file.', type=str, required=True)
+    required_named.add_argument('-s', '--splan', help='Path to skip plan file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
     options = parser.parse_args()
 
     # Check files required as parameters
-    if options.domain == None or options.problem == None or options.plan == None:
+    if options.task == None or options.aetask == None or options.plan == None or options.splan == None :
         parser.print_help()
         sys.exit(2)
 
     # Generate SAS+ representation from a domain and problem -> output.sas
-    domain_path = options.domain
-    problem_path = options.problem
-    sas_plan_file_path= options.plan
-    #TODO: preguntarle a mauricio como llamar a esto desde el driver y lo mismo para las dudas de más abajo
-    executing_fast_downward(domain_path, problem_path)
+    # domain_path = options.domain
+    # problem_path = options.problem
+    # sas_plan_file_path= options.plan
+    # TODO: preguntarle a mauricio como llamar a esto desde el driver y lo mismo para las dudas de más abajo
+    # executing_fast_downward(domain_path, problem_path)
 
     # Obtain the path of output.sas and sas_plan to generate the action_elim.sas file -> action-elimination.sas
     # TODO: How to obtain the paths to these files instead of getting them manually?
-    #TODO: por qué si ejecuto desde domains/block me sobreescribe el fichero sas_plan?
-    output_sas_file_path ="output.sas"
-    #sas_plan_file_path = "sas_plan"
-    generating_ae_sas_file(output_sas_file_path,sas_plan_file_path)
+    # TODO: por qué si ejecuto desde domains/block me sobreescribe el fichero sas_plan?
+    # output_sas_file_path = "output.sas"
+    # sas_plan_file_path = "sas_plan_original"
+    # generating_ae_sas_file(output_sas_file_path,sas_plan_file_path)
 
     # Solve the action elimination task using an optimal planner -> sas_plan
     # TODO: How to obtain the path to this file instead of getting it manually?
-    ae_sas_file_path ="action-elimination.sas"
-    solving_ae_task(ae_sas_file_path)   
+    # ae_sas_file_path ="action-elimination.sas"
+    # solving_ae_task(ae_sas_file_path)   
 
     # Determine if a plan is or not perfectly justified
     # TODO: How to obtain the path to this file instead of getting it manually?
-    sas_plan_ae_path = "sas_plan"
-    plan_ae, plan_ae_cost = parse_plan(sas_plan_ae_path)
+    # sas_plan_ae_path = "sas_plan"
+    # sas_plan_ae_path = "sas_plan_skip"
+
+    plan_ae, plan_ae_cost = parse_plan(options.splan)
     plan_perf_justf = perfectly_justified(plan_ae)
     
     print()
@@ -457,19 +484,23 @@ def main():
         print("The plan is not perfectly justified.")
 
         # Extract causal links from the input plan
-        plan, plan_cost = parse_plan(sas_plan_file_path)
-        task, operator_name_to_index_map = parse_task(output_sas_file_path)
-        list_causal_links_sas_plan = extracting_causal_links(output_sas_file_path, plan, options.subsequence)
+        print(f"Extracting causal links from original plan")
+        plan, plan_cost = parse_plan(options.plan)
+        task, operator_name_to_index_map = parse_task(options.task)
+        list_causal_links_sas_plan = extracting_causal_links(options.task, plan, options.subsequence)
 
         # Extract causal link from the justified plan (with skip actions).
-        task_ae, ae_operator_name_to_index_map = parse_task(ae_sas_file_path) 
-        list_causal_links_sas_plan_ae = extracting_causal_links(ae_sas_file_path, plan_ae, options.subsequence)
-
+        print(f"Extracting causal links from skipped actions plan")        
+        task_ae, ae_operator_name_to_index_map = parse_task(options.aetask)
+        print(f"AE task parsed")
+        list_causal_links_sas_plan_ae = extracting_causal_links(options.aetask, plan_ae, options.subsequence)
+         
         # Convert it into a dictionary where the keys represent the consumers and the values are lists of (producers, fact) to simplify the search for causal chains
         ordered_dict = convert_to_dict(list_causal_links_sas_plan,1)
 
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain of the unjustified plan
+        print(f"Extracting causal chains")
         causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
         #print(causal_chain_list) 
 
@@ -486,7 +517,7 @@ def main():
         showing_causal_chains(causal_chain_list, task_ae)
 
         # Generating explanations for actions
-        generating_explanations(plan, list_pos_redundant_actions,list_causal_links_sas_plan,task,task_ae, causal_chain_list)
+        generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task,task_ae, causal_chain_list)
 
 if __name__ == '__main__':
     main()

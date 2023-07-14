@@ -2,7 +2,7 @@
 
 #######################################################################
 #
-# Author: 
+# Author: TODO: fill this
 # Copyright 2023
 #
 # You should have received a copy of the GNU General Public License
@@ -11,7 +11,7 @@
 #######################################################################
 
 """
-TODO -> explain the stuff
+TODO: explain the stuff
 """
 
 
@@ -20,12 +20,14 @@ import argparse
 import subprocess
 import sys
 from copy import deepcopy
+from collections import defaultdict
+
 
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
-
-# TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. Why does this happen?
+# TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. 
+# Why does this happen?
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
     if ordered:
         # Ordered tasks create a different operator for each operator in the plan
@@ -37,6 +39,7 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         # set.add(x) always returns None so it doesn't affect the condition
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
     
+# TODO: remove this fuction when component ready in driver
 def executing_fast_downward(domain_path,problem_path):
     # Fast Downward file path
     # TODO: How to obtain the path to this file instead of getting it manually?
@@ -53,6 +56,7 @@ def executing_fast_downward(domain_path,problem_path):
         print("Error: Fast Downward execution failed.")
         sys.exit(1)
 
+# TODO: remove this function when component ready in driver
 def generating_ae_sas_file(output_sas_path, sas_plan_path):
     # action_elim file path
     # TODO: How to obtain the path to this file instead of getting it manually?
@@ -69,6 +73,7 @@ def generating_ae_sas_file(output_sas_path, sas_plan_path):
         print("Error: Failed to generate the action_elimination.sas file.")
         sys.exit(1)
 
+# TODO: remove this function when component ready in driver
 def solving_ae_task(ae_sas_path):
     # Fast Downward file path
     # TODO: How to obtain the path to this file instead of getting it manually?
@@ -85,49 +90,52 @@ def solving_ae_task(ae_sas_path):
         print("Error: Fast Downward execution failed. Resolution Action Elimination task not completed.")
         sys.exit(1)
 
-def perfectly_justified(sas_plan_ae):
-    for action in sas_plan_ae:
+def is_perfectly_justified(plan):
+    for action in plan:
         if 'skip-action' in action:
             return False
     return True
 
-def getting_var_pre_post_list(new_operators): 
-    # Obtain a list where each position represents an action, and each position contains a list of tuples in the form (list of (var, precond), list of (var,effect)]
-    precond_actions_list = []
-    effects_actions_list = []
+# TODO: code modified to make it more readable.
+def get_var_pre_post_list(operators): 
+    """
+    Obtains a list where each position represents an action, and contains a list of tuples in the form 
+    [list of (var, pre_val), list of (var, eff_val)]
+      """
+    op_pre_list = []
+    op_eff_list = []    
 
-    for i in range(len(new_operators)):
-        pre_post=new_operators[i].pre_post
-        precond_temp = []
-        effects_temp = []
-        for j in range(len(pre_post)):
-            var = pre_post[j][0]
-            precond = pre_post[j][1]
-            effects = pre_post[j][2]
-            precond_temp.append((var,precond))
-            effects_temp.append((var,effects))
-        precond_actions_list.append(precond_temp)
-        effects_actions_list.append(effects_temp)
-
-    final_precond_effects_list = list(zip(precond_actions_list, effects_actions_list))
-
-    return final_precond_effects_list
+    for op in operators:
+        op_pre = []
+        op_eff = []
     
-def extracting_causal_links(task, operator_name_to_index_map, plan, ordered):
+        for var, pre_val, eff_val, _ in op.pre_post:
+            op_pre += [(var, pre_val)]
+            op_eff += [(var, eff_val)]
+
+        op_pre_list += [op_pre]
+        op_eff_list += [op_eff]
+
+    return list(zip(op_pre_list, op_eff_list))
+    
+def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
 
     # Obtain the values of the initial state of the form (var,val)
     list_causal_links = []
-
+   
+    for var, value in enumerate(task.init.values):
+        list_causal_links.append
+    
     for i in range(len(task.init.values)):
         value = task.init.values[i]
-        fact = (i,value)
-        list_causal_links.append([[0],fact,[]])
+        fact = (i, value)
+        list_causal_links.append([[0], fact, []])
     
     new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, ordered)
 
     # Create a list of operators where each position corresponds to a plan action, and each position contains a tuple 
     # with the precondition and effect lists for that action
-    list_var_pre_post = getting_var_pre_post_list(new_operators)
+    list_var_pre_post = get_var_pre_post_list(new_operators)
 
     for i in range(len(list_var_pre_post)):
         list_precond = list_var_pre_post[i][0]
@@ -166,7 +174,8 @@ def extracting_causal_links(task, operator_name_to_index_map, plan, ordered):
   
     return list_final
     
-def convert_to_dict(list_causal_links_sas_plan, specified_key):
+def convert_to_dict_OLD(list_causal_links_sas_plan, specified_key):
+    # TODO: remove this function, it was changed by a clearer one: list_cl_to_dict
     mapping = {1: (2,0), 2:(0,2)}
     key_cons, value_prod = mapping.get(specified_key, (0,0))       
 
@@ -180,6 +189,22 @@ def convert_to_dict(list_causal_links_sas_plan, specified_key):
             dict_consumer_producer[key] = [value]
     ordered_dict = dict(sorted(dict_consumer_producer.items()))   
     return ordered_dict
+
+
+def list_cl_to_dict(list_cl, is_key_producer = True):
+    """
+    Converts a list of causal links in the form [(producer, (var, value), consumer),...]
+    into a dict where the keys can be the producers or the consumers depending
+    on is_key_producer and the values lists of the remaining elements:
+    producer: (consumer, var_value)
+    consumer: (producer, var_value)
+    """
+    dict_cl = defaultdict(list)
+    for (producer, var_value, consumer) in list_cl:
+        dict_cl[producer if is_key_producer else consumer].append((consumer if is_key_producer else producer, var_value))
+    # TODO: is it necessary this sort?    
+    ordered_dict_cl = dict(sorted(dict_cl.items()))      
+    return ordered_dict_cl
 
 def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):
     for causal_link_temp in list_causal_links_sas_plan:
@@ -432,12 +457,6 @@ def showing_causal_chains(causal_chain_list, task_ae):
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
-    # required_named.add_argument('-d', '--domain', help='Path to domain file.',type=str, required=True)
-    # required_named.add_argument('-p', '--problem', help='Path to problem file.', type=str, required=True)
-    # required_named.add_argument('-plan', '--plan', help='Path to sas plan file.', type=str, required=True)
-    # parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
-    # options = parser.parse_args()
-
     required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)
     required_named.add_argument('-a', '--aetask', help='Path to AE task file in SAS+ format.',type=str, required=True)
     required_named.add_argument('-p', '--plan', help='Path to original plan file.', type=str, required=True)
@@ -450,35 +469,11 @@ def main():
         parser.print_help()
         sys.exit(2)
 
-    # Generate SAS+ representation from a domain and problem -> output.sas
-    # domain_path = options.domain
-    # problem_path = options.problem
-    # sas_plan_file_path= options.plan
-    # TODO: preguntarle a mauricio como llamar a esto desde el driver y lo mismo para las dudas de más abajo
-    # executing_fast_downward(domain_path, problem_path)
-
-    # Obtain the path of output.sas and sas_plan to generate the action_elim.sas file -> action-elimination.sas
-    # TODO: How to obtain the paths to these files instead of getting them manually?
-    # TODO: por qué si ejecuto desde domains/block me sobreescribe el fichero sas_plan?
-    # output_sas_file_path = "output.sas"
-    # sas_plan_file_path = "sas_plan_original"
-    # generating_ae_sas_file(output_sas_file_path,sas_plan_file_path)
-
-    # Solve the action elimination task using an optimal planner -> sas_plan
-    # TODO: How to obtain the path to this file instead of getting it manually?
-    # ae_sas_file_path ="action-elimination.sas"
-    # solving_ae_task(ae_sas_file_path)   
-
-    # Determine if a plan is or not perfectly justified
-    # TODO: How to obtain the path to this file instead of getting it manually?
-    # sas_plan_ae_path = "sas_plan"
-    # sas_plan_ae_path = "sas_plan_skip"
-
     print(f"\nParsing AE plan")
-    plan_ae, plan_ae_cost = parse_plan(options.splan)
-    plan_is_perf_justf = perfectly_justified(plan_ae)
+    ae_plan, ae_plan_ae_costcost = parse_plan(options.splan)
+  
     
-    if(plan_is_perf_justf):
+    if (is_perfectly_justified(ae_plan)):
         print("The original plan is perfectly justified.")
     else:
         print("The original plan is not perfectly justified.")
@@ -486,37 +481,40 @@ def main():
         # Extract causal links from the input plan 
         print(f"Parsing original task")
         task, operator_name_to_index_map = parse_task(options.task)
-        print(operator_name_to_index_map)
-        task.dump()
+        # print(operator_name_to_index_map)
+        # task.dump()
+
         print(f"\nParsing original plan")
         plan, plan_cost = parse_plan(options.plan)
-        print(plan)
+        # print(plan)
+
         print(f"\nExtracting causal links from original plan")
-        list_causal_links_sas_plan = extracting_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
-        print(list_causal_links_sas_plan)
+        list_cl_plan = extract_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
+        print(list_cl_plan)
 
         # Extract causal link from the justified plan (with skip actions).
         print(f"\nParsing AE planning task")        
-        task_ae, ae_operator_name_to_index_map = parse_task(options.aetask)
+        ae_task, ae_operator_name_to_index_map = parse_task(options.aetask)
         print(ae_operator_name_to_index_map)
-        task_ae.dump()
+        # task_ae.dump()
         print(f"\nExtracting causal links from ae plan")
-        print(plan_ae)
-        list_causal_links_sas_plan_ae = extracting_causal_links(task_ae, ae_operator_name_to_index_map, plan_ae, options.subsequence)
-        print(list_causal_links_sas_plan_ae)
+        print(ae_plan)
+        list_cl_ae_plan = extract_causal_links(ae_task, ae_operator_name_to_index_map, ae_plan, options.subsequence)
+        print(list_cl_ae_plan)
 
         # Convert causal links of original plan into a dictionary where the keys represent the consumers and the values are lists of (producers, fact)
         # to simplify the search for causal chains
-        ordered_dict = convert_to_dict(list_causal_links_sas_plan, 1)
-        print("\nOrdered dictionary causal links original plan\n", ordered_dict)
+        dict_cl_plan_consumer_ordered = list_cl_to_dict(list_cl_plan, False)
+        print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
 
         # Obtain the causal chains
-        # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain of the unjustified plan
+        # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain
+        # of the unjustified plan
         print(f"Extracting causal chains")
-        causal_chain_list = causal_chains(list_causal_links_sas_plan_ae, task_ae,task, list_causal_links_sas_plan, ordered_dict )
+        causal_chain_list = causal_chains(list_cl_ae_plan, ae_task, task, list_cl_plan, dict_cl_plan_consumer_ordered)
         #print(causal_chain_list) 
 
-        list_pos_redundant_actions = pos_redundant_actions(plan_ae)
+        list_pos_redundant_actions = pos_redundant_actions(ae_plan)
         #print(f"Positions of the redundant actions in the plan: {list_pos_redundant_actions}\n")
 
         # Print plan with action elimination

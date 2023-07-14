@@ -7,7 +7,7 @@
 #-------------------------------------------------------------------------------------------------------------------------------------
 
 # Remove previous output files
-rm output.sas action-alimination.sas original-op-costs.txt sas_plan_original sas_plan_skip*
+rm output.sas action-elimination.sas original-op-costs.txt sas_plan_original sas_plan_skip
 
 # 1 FD translate. Generates: output.sas
 ../fast-downward.py --translate  $1 $2

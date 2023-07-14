@@ -15,7 +15,6 @@ TODO: explain the stuff
 """
 
 
-
 import argparse
 import subprocess
 import sys
@@ -96,7 +95,7 @@ def is_perfectly_justified(plan):
             return False
     return True
 
-# TODO: code modified to make it more readable.
+# TODO: revise this code. It was modified to make it more readable
 def get_var_pre_post_list(operators): 
     """
     Obtains a list where each position represents an action, and contains a list of tuples in the form 
@@ -118,6 +117,7 @@ def get_var_pre_post_list(operators):
 
     return list(zip(op_pre_list, op_eff_list))
     
+# TODO: make this code more readable    
 def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
 
     # Obtain the values of the initial state of the form (var,val)
@@ -173,9 +173,10 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
                     list_final.append((producers[j], causal_link_temp[1], -1))
   
     return list_final
-    
+
+# TODO: remove this function, it was changed by a clearer one: next list_cl_to_dict    
 def convert_to_dict_OLD(list_causal_links_sas_plan, specified_key):
-    # TODO: remove this function, it was changed by a clearer one: list_cl_to_dict
+
     mapping = {1: (2,0), 2:(0,2)}
     key_cons, value_prod = mapping.get(specified_key, (0,0))       
 
@@ -200,10 +201,13 @@ def list_cl_to_dict(list_cl, is_key_producer = True):
     consumer: (producer, var_value)
     """
     dict_cl = defaultdict(list)
+
     for (producer, var_value, consumer) in list_cl:
         dict_cl[producer if is_key_producer else consumer].append((consumer if is_key_producer else producer, var_value))
+
     # TODO: is it necessary this sort?    
     ordered_dict_cl = dict(sorted(dict_cl.items()))      
+
     return ordered_dict_cl
 
 def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):

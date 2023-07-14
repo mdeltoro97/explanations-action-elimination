@@ -113,9 +113,7 @@ def getting_var_pre_post_list(new_operators):
 
     return final_precond_effects_list
     
-def extracting_causal_links(planning_task_path, plan, ordered):
-
-    task, operator_name_to_index_map = parse_task(planning_task_path) 
+def extracting_causal_links(task, operator_name_to_index_map, plan, ordered):
 
     # Obtain the values of the initial state of the form (var,val)
     list_causal_links = []
@@ -127,7 +125,8 @@ def extracting_causal_links(planning_task_path, plan, ordered):
     
     new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, ordered)
 
-    # Create a list of operators where each position corresponds to a plan action, and each position contains a tuple with the precondition and effect lists for that action
+    # Create a list of operators where each position corresponds to a plan action, and each position contains a tuple 
+    # with the precondition and effect lists for that action
     list_var_pre_post = getting_var_pre_post_list(new_operators)
 
     for i in range(len(list_var_pre_post)):
@@ -164,11 +163,12 @@ def extracting_causal_links(planning_task_path, plan, ordered):
                     list_final.append((producers[j], causal_link_temp[1], consumers[j]))
                 else:
                     list_final.append((producers[j], causal_link_temp[1], -1))
+  
     return list_final
     
-def convert_to_dict(list_causal_links_sas_plan,specified_key):
+def convert_to_dict(list_causal_links_sas_plan, specified_key):
     mapping = {1: (2,0), 2:(0,2)}
-    key_cons,value_prod = mapping.get(specified_key, (0,0))       
+    key_cons, value_prod = mapping.get(specified_key, (0,0))       
 
     dict_consumer_producer = {}
     for causal_link_temp in list_causal_links_sas_plan:
@@ -474,34 +474,46 @@ def main():
     # sas_plan_ae_path = "sas_plan"
     # sas_plan_ae_path = "sas_plan_skip"
 
+    print(f"\nParsing AE plan")
     plan_ae, plan_ae_cost = parse_plan(options.splan)
-    plan_perf_justf = perfectly_justified(plan_ae)
+    plan_is_perf_justf = perfectly_justified(plan_ae)
     
-    print()
-    if(plan_perf_justf):
-        print("The plan is perfectly justified.")
+    if(plan_is_perf_justf):
+        print("The original plan is perfectly justified.")
     else:
-        print("The plan is not perfectly justified.")
+        print("The original plan is not perfectly justified.")
 
-        # Extract causal links from the input plan
-        print(f"Extracting causal links from original plan")
-        plan, plan_cost = parse_plan(options.plan)
+        # Extract causal links from the input plan 
+        print(f"Parsing original task")
         task, operator_name_to_index_map = parse_task(options.task)
-        list_causal_links_sas_plan = extracting_causal_links(options.task, plan, options.subsequence)
+        print(operator_name_to_index_map)
+        task.dump()
+        print(f"\nParsing original plan")
+        plan, plan_cost = parse_plan(options.plan)
+        print(plan)
+        print(f"\nExtracting causal links from original plan")
+        list_causal_links_sas_plan = extracting_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
+        print(list_causal_links_sas_plan)
 
         # Extract causal link from the justified plan (with skip actions).
-        print(f"Extracting causal links from skipped actions plan")        
+        print(f"\nParsing AE planning task")        
         task_ae, ae_operator_name_to_index_map = parse_task(options.aetask)
-        print(f"AE task parsed")
-        list_causal_links_sas_plan_ae = extracting_causal_links(options.aetask, plan_ae, options.subsequence)
-         
-        # Convert it into a dictionary where the keys represent the consumers and the values are lists of (producers, fact) to simplify the search for causal chains
-        ordered_dict = convert_to_dict(list_causal_links_sas_plan,1)
+        print(ae_operator_name_to_index_map)
+        task_ae.dump()
+        print(f"\nExtracting causal links from ae plan")
+        print(plan_ae)
+        list_causal_links_sas_plan_ae = extracting_causal_links(task_ae, ae_operator_name_to_index_map, plan_ae, options.subsequence)
+        print(list_causal_links_sas_plan_ae)
+
+        # Convert causal links of original plan into a dictionary where the keys represent the consumers and the values are lists of (producers, fact)
+        # to simplify the search for causal chains
+        ordered_dict = convert_to_dict(list_causal_links_sas_plan, 1)
+        print("\nOrdered dictionary causal links original plan\n", ordered_dict)
 
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain of the unjustified plan
         print(f"Extracting causal chains")
-        causal_chain_list = causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict )
+        causal_chain_list = causal_chains(list_causal_links_sas_plan_ae, task_ae,task, list_causal_links_sas_plan, ordered_dict )
         #print(causal_chain_list) 
 
         list_pos_redundant_actions = pos_redundant_actions(plan_ae)

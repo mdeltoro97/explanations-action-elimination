@@ -280,7 +280,7 @@ def get_relevant_causal_links(relevant_action_causal_links, task_ae):
 
 def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task, task_ae, causal_chain_list):
     relevant_action_causal_links_dict = list_cl_to_dict([tuple[0] for tuple in causal_chain_list], False)
-    redundant_action_causal_links_dict = list_cl_to_dict(list_causal_links_sas_plan, 2)
+    redundant_action_causal_links_dict = list_cl_to_dict(list_causal_links_sas_plan, True)
     explanations_dict = {}
 
 

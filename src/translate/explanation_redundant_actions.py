@@ -165,7 +165,7 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
         fact = task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
         producers = causal_link_temp[0]
         consumers = causal_link_temp[2]
-        if "plan-pos" not in fact and "irrelevant-fact" not in fact: 
+        if "plan-pos" not in fact and "irrelevant-fact" not in fact and "NegatedAtom" not in fact: 
             for j in range(len(producers)):
                 if j < len(consumers):
                     list_final.append((producers[j], causal_link_temp[1], consumers[j]))
@@ -173,24 +173,6 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
                     list_final.append((producers[j], causal_link_temp[1], -1))
   
     return list_final
-
-# TODO: remove this function, it was changed by a clearer one: next list_cl_to_dict    
-def convert_to_dict_OLD(list_causal_links_sas_plan, specified_key):
-
-    mapping = {1: (2,0), 2:(0,2)}
-    key_cons, value_prod = mapping.get(specified_key, (0,0))       
-
-    dict_consumer_producer = {}
-    for causal_link_temp in list_causal_links_sas_plan:
-        key = causal_link_temp[key_cons]
-        value = (causal_link_temp[value_prod],causal_link_temp[1])
-        if key in dict_consumer_producer:
-            dict_consumer_producer[key].append(value)
-        else:
-            dict_consumer_producer[key] = [value]
-    ordered_dict = dict(sorted(dict_consumer_producer.items()))   
-    return ordered_dict
-
 
 def list_cl_to_dict(list_cl, is_key_producer = True):
     """
@@ -204,11 +186,8 @@ def list_cl_to_dict(list_cl, is_key_producer = True):
 
     for (producer, var_value, consumer) in list_cl:
         dict_cl[producer if is_key_producer else consumer].append((consumer if is_key_producer else producer, var_value))
-
-    # TODO: is it necessary this sort?    
-    ordered_dict_cl = dict(sorted(dict_cl.items()))      
-
-    return ordered_dict_cl
+  
+    return dict_cl
 
 def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):
     for causal_link_temp in list_causal_links_sas_plan:
@@ -300,10 +279,10 @@ def get_relevant_causal_links(relevant_action_causal_links, task_ae):
     return list_explanations
 
 def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task, task_ae, causal_chain_list):
-
-    relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
-    redundant_action_causal_links_dict = convert_to_dict(list_causal_links_sas_plan, 2)
+    relevant_action_causal_links_dict = list_cl_to_dict([tuple[0] for tuple in causal_chain_list], False)
+    redundant_action_causal_links_dict = convert_to_dict_OLD(list_causal_links_sas_plan, 2)
     explanations_dict = {}
+
 
     while True:
         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
@@ -474,7 +453,7 @@ def main():
         sys.exit(2)
 
     print(f"\nParsing AE plan")
-    ae_plan, ae_plan_ae_costcost = parse_plan(options.splan)
+    ae_plan, plan_ae_cost = parse_plan(options.splan)
   
     
     if (is_perfectly_justified(ae_plan)):
@@ -528,10 +507,10 @@ def main():
         identifying_redundant_objects(task, plan, list_pos_redundant_actions)
 
         # Show causal chains
-        showing_causal_chains(causal_chain_list, task_ae)
+        showing_causal_chains(causal_chain_list, ae_task)
 
         # Generating explanations for actions
-        generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task,task_ae, causal_chain_list)
+        generating_explanations(plan, list_pos_redundant_actions, list_cl_plan, task,ae_task, causal_chain_list)
 
 if __name__ == '__main__':
     main()

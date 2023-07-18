@@ -2,7 +2,7 @@
 
 #######################################################################
 #
-# Author: TODO: fill this
+# Author: Martha Maria Del Toro Carballo
 # Copyright 2023
 #
 # You should have received a copy of the GNU General Public License
@@ -464,7 +464,7 @@ def main():
         # Extract causal links from the input plan 
         print(f"Parsing original task")
         task, operator_name_to_index_map = parse_task(options.task)
-        # print(operator_name_to_index_map)
+        #print(operator_name_to_index_map)
         # task.dump()
 
         print(f"\nParsing original plan")
@@ -473,22 +473,23 @@ def main():
 
         print(f"\nExtracting causal links from original plan")
         list_cl_plan = extract_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
-        print(list_cl_plan)
+        #print(list_cl_plan)
 
         # Extract causal link from the justified plan (with skip actions).
         print(f"\nParsing AE planning task")        
         ae_task, ae_operator_name_to_index_map = parse_task(options.aetask)
-        print(ae_operator_name_to_index_map)
+        #print(ae_operator_name_to_index_map)
         # task_ae.dump()
         print(f"\nExtracting causal links from ae plan")
-        print(ae_plan)
+        #print(ae_plan)
         list_cl_ae_plan = extract_causal_links(ae_task, ae_operator_name_to_index_map, ae_plan, options.subsequence)
-        print(list_cl_ae_plan)
+        #print(list_cl_ae_plan)
+        print()
 
         # Convert causal links of original plan into a dictionary where the keys represent the consumers and the values are lists of (producers, fact)
         # to simplify the search for causal chains
         dict_cl_plan_consumer_ordered = list_cl_to_dict(list_cl_plan, False)
-        print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
+        #print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
 
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain
@@ -503,14 +504,14 @@ def main():
         # Print plan with action elimination
         show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions)
 
-        # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
-        identifying_redundant_objects(task, plan, list_pos_redundant_actions)
+        # # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
+        # identifying_redundant_objects(task, plan, list_pos_redundant_actions)
 
-        # Show causal chains
-        showing_causal_chains(causal_chain_list, ae_task)
+        # # Show causal chains
+        # showing_causal_chains(causal_chain_list, ae_task)
 
-        # Generating explanations for actions
-        generating_explanations(plan, list_pos_redundant_actions, list_cl_plan, task,ae_task, causal_chain_list)
+        # # Generating explanations for actions
+        # generating_explanations(plan, list_pos_redundant_actions, list_cl_plan, task,ae_task, causal_chain_list)
 
 if __name__ == '__main__':
     main()

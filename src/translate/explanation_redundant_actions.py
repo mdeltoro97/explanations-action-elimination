@@ -138,6 +138,8 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
     list_var_pre_post = get_var_pre_post_list(new_operators)
 
     for i in range(len(list_var_pre_post)):
+        if ("skip" in new_operators[i].name):
+            continue
         list_precond = list_var_pre_post[i][0]
         list_effects = list_var_pre_post[i][1]
         for j in range(len(list_precond)):
@@ -205,10 +207,10 @@ def causal_chain(elements,ordered_dict, element, list_temp):
             causal_chain(elements2,ordered_dict, element, list_temp)
     return list_temp
     
-def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict):
+def causal_chains(list_causal_links_sas_plan_ae,task, list_causal_links_sas_plan,ordered_dict):
     causal_chain_list = []
     for causal_link_temp in list_causal_links_sas_plan_ae:
-        causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        causal_link_temp_renamed = (causal_link_temp[0],task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
         is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
         # Identify the causal links of the justified plan that are not in the unjustified plan to find the casual chains
         if  is_in_sas_plan == False and causal_link_temp[2]!=-1:  
@@ -441,20 +443,19 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)
-    required_named.add_argument('-a', '--aetask', help='Path to AE task file in SAS+ format.',type=str, required=True)
     required_named.add_argument('-p', '--plan', help='Path to original plan file.', type=str, required=True)
     required_named.add_argument('-s', '--splan', help='Path to skip plan file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
     options = parser.parse_args()
 
     # Check files required as parameters
-    if options.task == None or options.aetask == None or options.plan == None or options.splan == None :
+    if options.task == None or options.plan == None or options.splan == None :
         parser.print_help()
         sys.exit(2)
 
     print(f"\nParsing AE plan")
     ae_plan, plan_ae_cost = parse_plan(options.splan)
-  
+ 
     
     if (is_perfectly_justified(ae_plan)):
         print("The original plan is perfectly justified.")
@@ -476,13 +477,7 @@ def main():
         #print(list_cl_plan)
 
         # Extract causal link from the justified plan (with skip actions).
-        print(f"\nParsing AE planning task")        
-        ae_task, ae_operator_name_to_index_map = parse_task(options.aetask)
-        #print(ae_operator_name_to_index_map)
-        # task_ae.dump()
-        print(f"\nExtracting causal links from ae plan")
-        #print(ae_plan)
-        list_cl_ae_plan = extract_causal_links(ae_task, ae_operator_name_to_index_map, ae_plan, options.subsequence)
+        list_cl_ae_plan = extract_causal_links(task, operator_name_to_index_map, ae_plan, options.subsequence)
         #print(list_cl_ae_plan)
         print()
 
@@ -495,7 +490,7 @@ def main():
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain
         # of the unjustified plan
         print(f"Extracting causal chains")
-        causal_chain_list = causal_chains(list_cl_ae_plan, ae_task, task, list_cl_plan, dict_cl_plan_consumer_ordered)
+        causal_chain_list = causal_chains(list_cl_ae_plan, task, list_cl_plan, dict_cl_plan_consumer_ordered)
         #print(causal_chain_list) 
 
         list_pos_redundant_actions = pos_redundant_actions(ae_plan)

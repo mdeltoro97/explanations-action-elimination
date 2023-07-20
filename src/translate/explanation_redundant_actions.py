@@ -2,7 +2,7 @@
 
 #######################################################################
 #
-# Author: TODO: fill this
+# Author: Martha Maria Del Toro Carballo
 # Copyright 2023
 #
 # You should have received a copy of the GNU General Public License
@@ -165,7 +165,7 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
         fact = task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
         producers = causal_link_temp[0]
         consumers = causal_link_temp[2]
-        if "plan-pos" not in fact and "irrelevant-fact" not in fact: 
+        if "plan-pos" not in fact and "irrelevant-fact" not in fact and "NegatedAtom" not in fact: 
             for j in range(len(producers)):
                 if j < len(consumers):
                     list_final.append((producers[j], causal_link_temp[1], consumers[j]))
@@ -173,24 +173,6 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
                     list_final.append((producers[j], causal_link_temp[1], -1))
   
     return list_final
-
-# TODO: remove this function, it was changed by a clearer one: next list_cl_to_dict    
-def convert_to_dict_OLD(list_causal_links_sas_plan, specified_key):
-
-    mapping = {1: (2,0), 2:(0,2)}
-    key_cons, value_prod = mapping.get(specified_key, (0,0))       
-
-    dict_consumer_producer = {}
-    for causal_link_temp in list_causal_links_sas_plan:
-        key = causal_link_temp[key_cons]
-        value = (causal_link_temp[value_prod],causal_link_temp[1])
-        if key in dict_consumer_producer:
-            dict_consumer_producer[key].append(value)
-        else:
-            dict_consumer_producer[key] = [value]
-    ordered_dict = dict(sorted(dict_consumer_producer.items()))   
-    return ordered_dict
-
 
 def list_cl_to_dict(list_cl, is_key_producer = True):
     """
@@ -204,11 +186,8 @@ def list_cl_to_dict(list_cl, is_key_producer = True):
 
     for (producer, var_value, consumer) in list_cl:
         dict_cl[producer if is_key_producer else consumer].append((consumer if is_key_producer else producer, var_value))
-
-    # TODO: is it necessary this sort?    
-    ordered_dict_cl = dict(sorted(dict_cl.items()))      
-
-    return ordered_dict_cl
+  
+    return dict_cl
 
 def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):
     for causal_link_temp in list_causal_links_sas_plan:
@@ -300,10 +279,10 @@ def get_relevant_causal_links(relevant_action_causal_links, task_ae):
     return list_explanations
 
 def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task, task_ae, causal_chain_list):
-
-    relevant_action_causal_links_dict = convert_to_dict([tupla[0] for tupla in causal_chain_list], 1)
-    redundant_action_causal_links_dict = convert_to_dict(list_causal_links_sas_plan, 2)
+    relevant_action_causal_links_dict = list_cl_to_dict([tuple[0] for tuple in causal_chain_list], False)
+    redundant_action_causal_links_dict = list_cl_to_dict(list_causal_links_sas_plan, True)
     explanations_dict = {}
+
 
     while True:
         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
@@ -474,7 +453,7 @@ def main():
         sys.exit(2)
 
     print(f"\nParsing AE plan")
-    ae_plan, ae_plan_ae_costcost = parse_plan(options.splan)
+    ae_plan, plan_ae_cost = parse_plan(options.splan)
   
     
     if (is_perfectly_justified(ae_plan)):
@@ -485,7 +464,7 @@ def main():
         # Extract causal links from the input plan 
         print(f"Parsing original task")
         task, operator_name_to_index_map = parse_task(options.task)
-        # print(operator_name_to_index_map)
+        #print(operator_name_to_index_map)
         # task.dump()
 
         print(f"\nParsing original plan")
@@ -494,22 +473,23 @@ def main():
 
         print(f"\nExtracting causal links from original plan")
         list_cl_plan = extract_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
-        print(list_cl_plan)
+        #print(list_cl_plan)
 
         # Extract causal link from the justified plan (with skip actions).
         print(f"\nParsing AE planning task")        
         ae_task, ae_operator_name_to_index_map = parse_task(options.aetask)
-        print(ae_operator_name_to_index_map)
+        #print(ae_operator_name_to_index_map)
         # task_ae.dump()
         print(f"\nExtracting causal links from ae plan")
-        print(ae_plan)
+        #print(ae_plan)
         list_cl_ae_plan = extract_causal_links(ae_task, ae_operator_name_to_index_map, ae_plan, options.subsequence)
-        print(list_cl_ae_plan)
+        #print(list_cl_ae_plan)
+        print()
 
         # Convert causal links of original plan into a dictionary where the keys represent the consumers and the values are lists of (producers, fact)
         # to simplify the search for causal chains
         dict_cl_plan_consumer_ordered = list_cl_to_dict(list_cl_plan, False)
-        print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
+        #print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
 
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain
@@ -524,14 +504,14 @@ def main():
         # Print plan with action elimination
         show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions)
 
-        # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
-        identifying_redundant_objects(task, plan, list_pos_redundant_actions)
+        # # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
+        # identifying_redundant_objects(task, plan, list_pos_redundant_actions)
 
-        # Show causal chains
-        showing_causal_chains(causal_chain_list, task_ae)
+        # # Show causal chains
+        # showing_causal_chains(causal_chain_list, ae_task)
 
-        # Generating explanations for actions
-        generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task,task_ae, causal_chain_list)
+        # # Generating explanations for actions
+        # generating_explanations(plan, list_pos_redundant_actions, list_cl_plan, task,ae_task, causal_chain_list)
 
 if __name__ == '__main__':
     main()

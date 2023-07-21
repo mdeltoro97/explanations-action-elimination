@@ -38,7 +38,7 @@ mv sas_plan sas_plan_skip
 
 # 5 EXP generation call
 echo -e "${YELLOW}TESTING: Calling Explanation Generator${WHITE}"
-../src/translate/explanation_redundant_actions.py -t output.sas  -a action-elimination.sas -p sas_plan_original -s sas_plan_skip 
+../src/translate/explanation_redundant_actions.py -t output.sas -p sas_plan_original -s sas_plan_skip 
 
 #-------------------------------------------------------------------------------------------------------------------------------------
 

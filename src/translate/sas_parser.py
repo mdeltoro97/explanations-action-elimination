@@ -166,7 +166,7 @@ def parse_task(task_file, verify_parsed_task=False):
             operators[-1].pre_post = effects
             if operator_name in operator_name_to_index:
                 print("Warning: multiple actions with the same name %s", operator_name)
-                #sys.exit("Multiple actions with the same name not supported by action elimination.")
+                sys.exit("Multiple actions with the same name not supported by action elimination.")
             operator_name_to_index[operator_name] = operator_index
 
         # Axioms...

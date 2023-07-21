@@ -25,9 +25,8 @@ from collections import defaultdict
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
-# TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. 
-# Why does this happen?
-def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
+# TODO: Remove this function. 
+def get_operators_from_planOLD(operators, plan, operator_name_to_index, ordered):
 
     if ordered:
         # Ordered tasks create a different operator for each operator in the plan
@@ -37,7 +36,28 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         added = set()
         # added.add(op) is only used for its' side effects.
         # set.add(x) always returns None so it doesn't affect the condition
-        return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
+        return [operators[operator_name_to_index[op]] for op in plan if not op in added or added.add(op)]
+
+def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
+
+    plan_operators= []
+    added = set()
+    
+    for op in plan:   
+        if 'skip-action' in op:
+            plan_operators += [None]
+        else:    
+            if ordered:
+                # Ordered tasks create a different operator for each operator in the plan
+                plan_operators += [deepcopy(operators[operator_name_to_index[op]])]
+            else:
+                # Unordered tasks create a different operator for each unique operator in the plan
+                # added.add(op) is only used for its' side effects.
+                # set.add(x) always returns None so it doesn't affect the condition
+                if (not op in added or added.add(op)):
+                    plan_operators += [operators[operator_name_to_index[op]]] 
+
+    return plan_operators
 
 def is_perfectly_justified(plan):
     for action in plan:
@@ -57,18 +77,19 @@ def get_var_pre_post_list(operators):
     for op in operators:
         op_pre = []
         op_eff = []
-    
-        for var, pre_val, eff_val, _ in op.pre_post:
-            op_pre += [(var, pre_val)]
-            op_eff += [(var, eff_val)]
+
+        if not op is None:
+            for var, pre_val, eff_val, _ in op.pre_post:
+                op_pre += [(var, pre_val)]
+                op_eff += [(var, eff_val)]
 
         op_pre_list += [op_pre]
         op_eff_list += [op_eff]
 
     return list(zip(op_pre_list, op_eff_list))
     
-# TODO: make this code more readable    
-def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
+# TODO: remove this function. Replaced by a new one   
+def extract_causal_linksOLD(task, operator_name_to_index_map, plan, ordered):
 
     # Obtain the values of the initial state of the form (var,val)
     list_causal_links = []
@@ -123,6 +144,59 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
   
     return list_final
 
+# TODO: make this code more readable    
+def extract_causal_links(task, plan_operators):
+
+    # Obtain the values of the initial state of the form (var,val)
+    list_causal_links = [[[0], (var, task.init.values[var]), []] for var in range(len(task.init.values))]
+
+    list_var_pre_post = get_var_pre_post_list(plan_operators)
+    
+    for i in range(len(list_var_pre_post)):
+        list_precond = list_var_pre_post[i][0]
+        list_effects = list_var_pre_post[i][1]
+        for j in range(len(list_precond)):
+            fact= list_precond[j]
+            for k in range(len(list_causal_links)):
+                causal_link_temp = list_causal_links[k]
+
+                if causal_link_temp[1] == fact or (causal_link_temp[1][1] == -fact[1] and causal_link_temp[1][0] == fact[0]):
+                    list_causal_links[k][2].append(i+1)
+        for l in range(len(list_effects)):
+            fact= list_effects[l]
+            exist=False
+            for k in range(len(list_causal_links)):
+                causal_link_temp=list_causal_links[k]
+                if causal_link_temp[1] == fact:
+                    exist=True
+                    list_causal_links[k][0].append(i+1)
+                    break;
+            if exist == False:
+                list_causal_links.append([[i+1],fact,[]])
+    
+    list_final=[]
+    for i in range(len(list_causal_links)):
+        causal_link_temp = list_causal_links[i]
+        fact = task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]]
+        producers = causal_link_temp[0]
+        consumers = causal_link_temp[2]
+        # TODO: revise next check. Now there is no plan-pos var and thereis no irrelevant fact
+        if "plan-pos" not in fact and "irrelevant-fact" not in fact and "NegatedAtom" not in fact: 
+            for j in range(len(producers)):
+                if j < len(consumers):
+                    list_final.append((producers[j], causal_link_temp[1], consumers[j]))
+                else:
+                    list_final.append((producers[j], causal_link_temp[1], -1))
+  
+    return list_final
+
+def pretty_print_causal_links (list_cl, plan_op, task):
+    for (prod, (var, value), cons) in list_cl:
+        prod_name = plan_op[prod-1].name if prod > 0 else "Init"
+        cons_name = plan_op[cons-1].name if cons > 0 else "None"
+        print(f"{prod_name :<25} -> {task.variables.value_names[var][value] :<25} -> {cons_name}")
+
+
 def list_cl_to_dict(list_cl, is_key_producer = True):
     """
     Converts a list of causal links in the form [(producer, (var, value), consumer),...]
@@ -154,11 +228,11 @@ def causal_chain(elements,ordered_dict, element, list_temp):
             causal_chain(elements2,ordered_dict, element, list_temp)
     return list_temp
     
-def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict):
+def causal_chains(list_cl_plan_ae, task, list_cl_plan, ordered_dict):
     causal_chain_list = []
-    for causal_link_temp in list_causal_links_sas_plan_ae:
-        causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
-        is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
+    for causal_link_temp in list_cl_plan_ae:
+        causal_link_temp_renamed = (causal_link_temp[0], task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed, task,list_cl_plan)
         # Identify the causal links of the justified plan that are not in the unjustified plan to find the casual chains
         if  is_in_sas_plan == False and causal_link_temp[2]!=-1:  
             for causal_link_dict in ordered_dict[causal_link_temp[2]]:
@@ -390,14 +464,13 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)
-    required_named.add_argument('-a', '--aetask', help='Path to AE task file in SAS+ format.',type=str, required=True)
     required_named.add_argument('-p', '--plan', help='Path to original plan file.', type=str, required=True)
     required_named.add_argument('-s', '--splan', help='Path to skip plan file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
     options = parser.parse_args()
 
     # Check files required as parameters
-    if options.task == None or options.aetask == None or options.plan == None or options.splan == None :
+    if options.task == None or options.plan == None or options.splan == None :
         parser.print_help()
         sys.exit(2)
 
@@ -405,12 +478,7 @@ def main():
     ae_plan, plan_ae_cost = parse_plan(options.splan)
     print(ae_plan)
 
-    print(f"\nParsing AE task")
-    ae_task, operator_name_to_index_map_ae = parse_task(options.aetask)
-    print(operator_name_to_index_map_ae)
-    # task.dump()
- 
-    
+  
     if (is_perfectly_justified(ae_plan)):
         print("\nThe original plan is perfectly justified.")
     else:
@@ -419,7 +487,7 @@ def main():
         #Extract causal links from the input plan 
         print(f"\nParsing original task")
         task, operator_name_to_index_map = parse_task(options.task)
-        print(operator_name_to_index_map)
+        # print(operator_name_to_index_map)
         # task.dump()
 
         print(f"\nParsing original plan")
@@ -427,15 +495,24 @@ def main():
         print(plan)
 
         print(f"\nExtracting causal links from original plan")
-        list_cl_plan = extract_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
+        plan_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, options.subsequence)
+        list_cl_plan = extract_causal_links(task, plan_operators)
         print(list_cl_plan)
-        print()
+        pretty_print_causal_links (list_cl_plan, plan_operators, task)        
 
-        print(f"\nExtracting causal links from the justified plan (with skip actions)")
+        # print(f"\nExtracting causal links from the justified plan (with skip actions)")
         # Extract causal link from the justified plan (with skip actions).
-        list_cl_ae_plan = extract_causal_links(ae_task, operator_name_to_index_map_ae, ae_plan, options.subsequence)
+        # list_cl_ae_plan = extract_causal_links(ae_task, operator_name_to_index_map_ae, ae_plan, options.subsequence)
+        # print(list_cl_ae_plan)
+        print(f"\nExtracting causal links from the justified plan (with skip actions) using original task")   
+        # print(f"\nOp name index orig task")
+        # print(operator_name_to_index_map)     
+        # print(f"\nOp name index ae task")
+        # print(operator_name_to_index_map_ae)
+        ae_plan_operators = get_operators_from_plan(task.operators, ae_plan, operator_name_to_index_map, options.subsequence)      
+        list_cl_ae_plan = extract_causal_links(task, ae_plan_operators)
         print(list_cl_ae_plan)
-        print()
+        pretty_print_causal_links (list_cl_ae_plan, ae_plan_operators, task)
 
         # Convert causal links of original plan into a dictionary where the keys represent the consumers and the values are lists of (producers, fact)
         # to simplify the search for causal chains
@@ -446,7 +523,8 @@ def main():
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain
         # of the unjustified plan
         print(f"Extracting causal chains")
-        causal_chain_list = causal_chains(list_cl_ae_plan,ae_task,task, list_cl_plan,dict_cl_plan_consumer_ordered )
+        # causal_chain_list = causal_chains(list_cl_ae_plan,ae_task,task, list_cl_plan,dict_cl_plan_consumer_ordered )
+        causal_chain_list = causal_chains(list_cl_ae_plan, task, list_cl_plan, dict_cl_plan_consumer_ordered)        
         print(causal_chain_list) 
 
         list_pos_redundant_actions = pos_redundant_actions(ae_plan)

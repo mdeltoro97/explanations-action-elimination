@@ -28,6 +28,7 @@ from sas_parser import parse_task
 # TODO: This method is already implemented in action_elim.py but if I import it, the execution of my file does not work, however if I copy it here it works. 
 # Why does this happen?
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
+
     if ordered:
         # Ordered tasks create a different operator for each operator in the plan
         return [deepcopy(operators[operator_name_to_index[op]]) for op in plan]
@@ -37,57 +38,6 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
         # added.add(op) is only used for its' side effects.
         # set.add(x) always returns None so it doesn't affect the condition
         return [operators[operator_name_to_index[op]] for op in plan if not (op in added or added.add(op))]
-    
-# TODO: remove this fuction when component ready in driver
-def executing_fast_downward(domain_path,problem_path):
-    # Fast Downward file path
-    # TODO: How to obtain the path to this file instead of getting it manually?
-    fast_downward_path = '../../fast-downward.py'
-
-    # Build the command
-    command = f'{sys.executable} {fast_downward_path} --translate {domain_path} {problem_path}'
-
-    try:
-        # Execute the command on the system
-        subprocess.run(command, shell=True, check=True)
-        print("Successful Fast Downward execution.")
-    except subprocess.CalledProcessError:
-        print("Error: Fast Downward execution failed.")
-        sys.exit(1)
-
-# TODO: remove this function when component ready in driver
-def generating_ae_sas_file(output_sas_path, sas_plan_path):
-    # action_elim file path
-    # TODO: How to obtain the path to this file instead of getting it manually?
-    action_elim_path = '../../src/translate/action_elim.py'
-
-    # Build the command
-    command = f'{sys.executable} {action_elim_path} -t {output_sas_path} -p {sas_plan_path} --reduction MLR --enhanced-fix-point --subsequence --add-pos-to-goal'
-
-    try:
-        # Execute the command on the system
-        subprocess.run(command, shell=True, check=True)
-        print("Generation of action_elimination.sas file successfully completed.")
-    except subprocess.CalledProcessError:
-        print("Error: Failed to generate the action_elimination.sas file.")
-        sys.exit(1)
-
-# TODO: remove this function when component ready in driver
-def solving_ae_task(ae_sas_path):
-    # Fast Downward file path
-    # TODO: How to obtain the path to this file instead of getting it manually?
-    fast_downward_path = '../../fast-downward.py'
-
-    # Build the command
-    command = f'{sys.executable} {fast_downward_path} {ae_sas_path} --search "astar(hmax())"'
-
-    try:
-        # Execute the command on the system
-        subprocess.run(command, shell=True, check=True)
-        print("Completed resolution Action Elimination task.")
-    except subprocess.CalledProcessError:
-        print("Error: Fast Downward execution failed. Resolution Action Elimination task not completed.")
-        sys.exit(1)
 
 def is_perfectly_justified(plan):
     for action in plan:
@@ -122,14 +72,11 @@ def extract_causal_links(task, operator_name_to_index_map, plan, ordered):
 
     # Obtain the values of the initial state of the form (var,val)
     list_causal_links = []
-   
-    for var, value in enumerate(task.init.values):
-        list_causal_links.append
-    
+
     for i in range(len(task.init.values)):
         value = task.init.values[i]
-        fact = (i, value)
-        list_causal_links.append([[0], fact, []])
+        fact = (i,value)
+        list_causal_links.append([[0],fact,[]])
     
     new_operators = get_operators_from_plan(task.operators, plan, operator_name_to_index_map, ordered)
 
@@ -207,10 +154,10 @@ def causal_chain(elements,ordered_dict, element, list_temp):
             causal_chain(elements2,ordered_dict, element, list_temp)
     return list_temp
     
-def causal_chains(list_causal_links_sas_plan_ae,task, list_causal_links_sas_plan,ordered_dict):
+def causal_chains(list_causal_links_sas_plan_ae,task_ae,task, list_causal_links_sas_plan,ordered_dict):
     causal_chain_list = []
     for causal_link_temp in list_causal_links_sas_plan_ae:
-        causal_link_temp_renamed = (causal_link_temp[0],task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
+        causal_link_temp_renamed = (causal_link_temp[0],task_ae.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]], causal_link_temp[2])
         is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed,task,list_causal_links_sas_plan)
         # Identify the causal links of the justified plan that are not in the unjustified plan to find the casual chains
         if  is_in_sas_plan == False and causal_link_temp[2]!=-1:  
@@ -253,18 +200,18 @@ def show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions):
             print(f"{i+1} {plan[i]}")
     print(f"; cost = {plan_ae_cost} (general cost)")
 
-def get_redundant_producer(action_number, fact, task_ae, causal_chain_list):
+def get_redundant_producer(action_number, fact, task, causal_chain_list):
     for causal_link_and_chain in causal_chain_list:
-        if causal_link_and_chain[0][2]== action_number and fact == task_ae.variables.value_names[causal_link_and_chain[0][1][0]][causal_link_and_chain[0][1][1]]:
+        if causal_link_and_chain[0][2]== action_number and fact == task.variables.value_names[causal_link_and_chain[0][1][0]][causal_link_and_chain[0][1][1]]:
             return causal_link_and_chain[1][-1]
 
-def get_relevant_causal_links(relevant_action_causal_links, task_ae):
+def get_relevant_causal_links(relevant_action_causal_links, task):
     list_explanations = []
     list_fact_produced_initial_state = []
    
     for causal_link_temp in relevant_action_causal_links:
         fact_index = causal_link_temp[1]
-        fact = task_ae.variables.value_names[fact_index[0]][fact_index[1]]
+        fact = task.variables.value_names[fact_index[0]][fact_index[1]]
         producer = causal_link_temp[0]
        
         if producer == 0:
@@ -280,7 +227,7 @@ def get_relevant_causal_links(relevant_action_causal_links, task_ae):
     list_explanations.append(facts_str)
     return list_explanations
 
-def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task, task_ae, causal_chain_list):
+def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_sas_plan, task, causal_chain_list):
     relevant_action_causal_links_dict = list_cl_to_dict([tuple[0] for tuple in causal_chain_list], False)
     redundant_action_causal_links_dict = list_cl_to_dict(list_causal_links_sas_plan, True)
     explanations_dict = {}
@@ -319,7 +266,7 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
                                 elif consumer in list_pos_redundant_actions:
                                     explanation_str += f"\n--> {facts_str} which is consumed by the action {consumer} also redundant."
                                 else:
-                                    relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task_ae)
+                                    relevant_causal_links = get_relevant_causal_links(relevant_action_causal_links_dict[consumer], task)
                                     rel_expl_str = ""
                                     if len(relevant_causal_links) == 1:
                                         rel_expl_str = relevant_causal_links[0]
@@ -332,11 +279,11 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
                             list_fact_produced_initial_state = []
                             for element in producers_list:
                                 producer, (var_index, val_index) = element
-                                fact = task_ae.variables.value_names[var_index][val_index]
+                                fact = task.variables.value_names[var_index][val_index]
                                 if producer == 0:
                                     list_fact_produced_initial_state.append(fact)
                                 else:
-                                    redundant_action = get_redundant_producer(action_number, fact, task_ae, causal_chain_list)
+                                    redundant_action = get_redundant_producer(action_number, fact, task, causal_chain_list)
                                     explanation_str += f"\n--> {fact} as a precondition which is obtained through the effects produced by the relevant action {producer}. This fact, in the unjustified plan, action {action_number} obtained it through the redundant action {redundant_action}."
                             if len(list_fact_produced_initial_state) > 1:
                                 facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state."
@@ -408,7 +355,7 @@ def identifying_redundant_objects(task, list_actions_plan, list_pos_redundant_ac
     else:
         print("You have entered an invalid option.")
     
-def showing_causal_chains(causal_chain_list, task_ae):
+def showing_causal_chains(causal_chain_list, task):
     show_causal_chains = input("\nWould you like to obtain the causal chains present in the unjustified plan? (Yes/No): ").lower()
     if show_causal_chains == "no":
         print("Obtaining causal chains finished.")
@@ -417,7 +364,7 @@ def showing_causal_chains(causal_chain_list, task_ae):
             explanation_str=""
             causal_link = causal_link_chain[0]
             causal_chain = causal_link_chain[1]
-            fact_instantiated = task_ae.variables.value_names[causal_link[1][0]][causal_link[1][1]]
+            fact_instantiated = task.variables.value_names[causal_link[1][0]][causal_link[1][1]]
             explanation_str = f"--> Fact {fact_instantiated} is produced by the "
             if causal_link[0] == 0:
                 explanation_str += "initial state"
@@ -443,70 +390,79 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-t', '--task', help='Path to task file in SAS+ format.',type=str, required=True)
+    required_named.add_argument('-a', '--aetask', help='Path to AE task file in SAS+ format.',type=str, required=True)
     required_named.add_argument('-p', '--plan', help='Path to original plan file.', type=str, required=True)
     required_named.add_argument('-s', '--splan', help='Path to skip plan file.', type=str, required=True)
     parser.add_argument('--subsequence', help='Compiled task must guarantee maintaining order of original actions', action='store_true', default=False)
     options = parser.parse_args()
 
     # Check files required as parameters
-    if options.task == None or options.plan == None or options.splan == None :
+    if options.task == None or options.aetask == None or options.plan == None or options.splan == None :
         parser.print_help()
         sys.exit(2)
 
     print(f"\nParsing AE plan")
     ae_plan, plan_ae_cost = parse_plan(options.splan)
+    print(ae_plan)
+
+    print(f"\nParsing AE task")
+    ae_task, operator_name_to_index_map_ae = parse_task(options.aetask)
+    print(operator_name_to_index_map_ae)
+    # task.dump()
  
     
     if (is_perfectly_justified(ae_plan)):
-        print("The original plan is perfectly justified.")
+        print("\nThe original plan is perfectly justified.")
     else:
-        print("The original plan is not perfectly justified.")
+        print("\nThe original plan is not perfectly justified.")
 
-        # Extract causal links from the input plan 
-        print(f"Parsing original task")
+        #Extract causal links from the input plan 
+        print(f"\nParsing original task")
         task, operator_name_to_index_map = parse_task(options.task)
-        #print(operator_name_to_index_map)
+        print(operator_name_to_index_map)
         # task.dump()
 
         print(f"\nParsing original plan")
         plan, plan_cost = parse_plan(options.plan)
-        # print(plan)
+        print(plan)
 
         print(f"\nExtracting causal links from original plan")
         list_cl_plan = extract_causal_links(task, operator_name_to_index_map, plan, options.subsequence)
-        #print(list_cl_plan)
+        print(list_cl_plan)
+        print()
 
+        print(f"\nExtracting causal links from the justified plan (with skip actions)")
         # Extract causal link from the justified plan (with skip actions).
-        list_cl_ae_plan = extract_causal_links(task, operator_name_to_index_map, ae_plan, options.subsequence)
-        #print(list_cl_ae_plan)
+        list_cl_ae_plan = extract_causal_links(ae_task, operator_name_to_index_map_ae, ae_plan, options.subsequence)
+        print(list_cl_ae_plan)
         print()
 
         # Convert causal links of original plan into a dictionary where the keys represent the consumers and the values are lists of (producers, fact)
         # to simplify the search for causal chains
         dict_cl_plan_consumer_ordered = list_cl_to_dict(list_cl_plan, False)
-        #print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
+        print("\nOrdered dictionary (consumer key) causal links original plan\n", dict_cl_plan_consumer_ordered)
 
         # Obtain the causal chains
         # The causal chains is formed by a list containing tuples, which are formed by the causal link of the justified plan and its causal chain
         # of the unjustified plan
         print(f"Extracting causal chains")
-        causal_chain_list = causal_chains(list_cl_ae_plan, task, list_cl_plan, dict_cl_plan_consumer_ordered)
-        #print(causal_chain_list) 
+        causal_chain_list = causal_chains(list_cl_ae_plan,ae_task,task, list_cl_plan,dict_cl_plan_consumer_ordered )
+        print(causal_chain_list) 
 
         list_pos_redundant_actions = pos_redundant_actions(ae_plan)
-        #print(f"Positions of the redundant actions in the plan: {list_pos_redundant_actions}\n")
+        print(f"\nPositions of the redundant actions in the plan: {list_pos_redundant_actions}")
 
         # Print plan with action elimination
         show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions)
 
         # # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
-        # identifying_redundant_objects(task, plan, list_pos_redundant_actions)
+        identifying_redundant_objects(task, plan, list_pos_redundant_actions)
 
-        # # Show causal chains
-        # showing_causal_chains(causal_chain_list, ae_task)
+        # Show causal chains
+        showing_causal_chains(causal_chain_list, task)
 
         # # Generating explanations for actions
-        # generating_explanations(plan, list_pos_redundant_actions, list_cl_plan, task,ae_task, causal_chain_list)
+        generating_explanations(plan, list_pos_redundant_actions, list_cl_plan, task, causal_chain_list)
 
 if __name__ == '__main__':
     main()

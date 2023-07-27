@@ -478,7 +478,7 @@ def showing_causal_chains(plan, causal_chain_list, task):
                         explanation_str += "initial state"
                     else:
                         explanation_str += f"Action {causal_link[0]} {plan[causal_link[0]-1]} "
-                    explanation_str += f" and is consumed by Action {causal_link[2]} {plan[causal_link[2]-1]} in the justified plan. In the unjustified plan, this fact would be obtained through the following causal chain of actions: "
+                    explanation_str += f" and is consumed by Action {causal_link[2]} {plan[causal_link[2]-1]} in the justified plan. In the unjustified plan, this fact would be obtained through the following causal chain of actions:"
                     producer = causal_link[0]
 
                     causal_chain_str = ""
@@ -488,7 +488,7 @@ def showing_causal_chains(plan, causal_chain_list, task):
                             found = True
                         if found and action!=0:
                             temp =  f" {plan[action-1]}" 
-                            causal_chain_str += str(action) + temp +", "
+                            causal_chain_str += " " + str(action) + temp + ","
                     explanation_str += causal_chain_str.rstrip(",")
                     print(explanation_str)
                     

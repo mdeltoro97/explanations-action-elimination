@@ -1,7 +1,0 @@
-(pick-up c)
-(put-down c)
-(pick-up c)
-(put-down c)
-(pick-up a)
-(stack a b)
-; cost = 4 (unit cost)

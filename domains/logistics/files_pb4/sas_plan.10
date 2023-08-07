@@ -1,0 +1,8 @@
+(loadairplane jason airplane1 lonairport)
+(flyairplane airplane1 lonairport jfkairport)
+(flyairplane airplane2 lonairport jfkairport)
+(loadairplane michelle airplane1 jfkairport)
+(flyairplane airplane1 jfkairport parairport)
+(unloadairplane michelle airplane1 parairport)
+(unloadairplane jason airplane1 parairport)
+; cost = 7 (unit cost)

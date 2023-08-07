@@ -1,0 +1,7 @@
+(loadairplane jason airplane1 lonairport)
+(loadairplane alex airplane1 lonairport)
+(flyairplane airplane1 lonairport parairport)
+(unloadairplane jason airplane1 parairport)
+(unloadairplane alex airplane1 parairport)
+(skip-action plan-pos-5)
+; cost = 5 (general cost)

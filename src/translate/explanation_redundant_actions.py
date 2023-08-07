@@ -421,6 +421,8 @@ def identifying_redundant_objects(task, list_actions_plan, list_pos_redundant_ac
             print("Obtaining redundant objects finished.")
             break
         elif show_irrelevant_objects == "yes":
+            # AÑadir los objetos que aparecen en el estado inicial!!!
+            
             list_all_objects = []
             for action in list_actions_plan:
                 objects = action[action.find(' ') + 1:-1].split()
@@ -438,6 +440,8 @@ def identifying_redundant_objects(task, list_actions_plan, list_pos_redundant_ac
             for rel_obj in list_objects_goal_state:
                 if rel_obj in list_all_objects:
                     list_all_objects.remove(rel_obj)
+
+            
             
             # Objects present in relevant actions are considered relevant, regardless of their presence in the goal state; otherwise, they are not considered relevant.
             for i, action in enumerate(list_actions_plan):

@@ -1,3 +1,6 @@
+# Explanations for Action Elimination
+TODO
+
 # Scorpion
 
 Scorpion is a classical planning system that extends [Fast

@@ -503,7 +503,7 @@ def showing_causal_chains(plan, causal_chain_list, task):
                     print(explanation_str)
                     
             else:
-                print("There are no causal chains because the Relevant Actions of the justified plan do not consume facts produced by Redundant Actions in the unjustified plan.")
+                print("There are no unnecessary or non-justified causal chains of actions because the Relevant Actions of the justified plan do not consume facts produced by Redundant Actions in the unjustified plan.")
             break
         else:
             print("You have entered an invalid option.")   

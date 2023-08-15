@@ -398,7 +398,7 @@ def generating_explanations(plan, list_pos_redundant_actions, list_causal_links_
         else:
             print("You have entered an invalid option.")
     
-def obtaining_objects_from_actions(init_values_list,task):
+def obtaining_objects_from_facts(init_values_list,task):
     list_objects = []
     for var_val in init_values_list:
         fact_instantiated = task.variables.value_names[var_val[0]][var_val[1]]
@@ -423,28 +423,35 @@ def identifying_redundant_objects(task, list_actions_plan, list_pos_redundant_ac
         elif show_irrelevant_objects == "yes":
             
             init_values_list = []
+            # Obtain the facts from the initial state
             for i in range(len(task.init.values)):
                 val = task.init.values[i]
                 fact = (i, val)
                 init_values_list.append(fact) 
 
-            list_objects_init_state = obtaining_objects_from_actions(init_values_list,task)
+            # Obtain the objects contained in the facts of the initial state
+            list_objects_init_state = obtaining_objects_from_facts(init_values_list,task)
 
+            # Create the final list (which will contain the irrelevant objects found) and initially assign to it the objects found in the initial state
             list_all_objects = list_objects_init_state
 
+            # Each action of the plan is run through and the objects present in each one are extracted. Only those that are not in the final list are added.
             for action in list_actions_plan:
                 objects = action[action.find(' ') + 1:-1].split()
                 for temp in objects:
                     if temp not in list_all_objects:
                         list_all_objects.append(temp)
 
+            # Obtain the facts from the goal state
             goal_values_list = []
             for i in range(len(task.goal.pairs)):
                 fact = task.goal.pairs[i]
                 goal_values_list.append(fact) 
 
-            list_objects_goal_state = obtaining_objects_from_actions(goal_values_list,task)
+            # Obtain the objects contained in the facts of the goal state
+            list_objects_goal_state = obtaining_objects_from_facts(goal_values_list,task)
 
+            # Objects contained in the goal state are removed from the final list
             for rel_obj in list_objects_goal_state:
                 if rel_obj in list_all_objects:
                     list_all_objects.remove(rel_obj)

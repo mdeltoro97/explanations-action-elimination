@@ -413,7 +413,39 @@ def obtaining_objects_from_facts(init_values_list,task):
                         list_objects.append(object_temp)
     return list_objects
 
-def identifying_redundant_objects(task, list_actions_plan, list_pos_redundant_actions):
+def identifying_redundant_objects(list_actions_plan, list_pos_redundant_actions):
+    
+    while True:
+        show_irrelevant_objects = input("\nWould you like to obtain redundant objects? (Yes/No): ").lower()
+        if show_irrelevant_objects == "no":
+            print("Obtaining redundant objects finished.")
+            break
+        elif show_irrelevant_objects == "yes":
+            list_all_objects=[]
+            list_relevant_objects = []
+            # Objects present in relevant actions are considered relevant, regardless of their presence in the goal state; otherwise, they are not considered relevant.
+            for i, action in enumerate(list_actions_plan):
+                objects = action[action.find(' ') + 1:-1].split()
+                list_all_objects = list(set(list_all_objects) | set(objects))  
+                if (i+1) not in list_pos_redundant_actions:
+                    list_relevant_objects = list(set(list_relevant_objects) | set(objects)) 
+                        
+            list_irrelevant_objects = list(set(list_all_objects) - set(list_relevant_objects))
+                        
+            # Printing irrelevant objects, in case they exist (those not found in relevant actions) 
+            if len(list_irrelevant_objects) == 0:
+                print('There are no irrelevant objects.')   
+            elif len(list_irrelevant_objects) > 1:
+                    objects_str = ", ".join(list_irrelevant_objects[:-1]) + " and " + list_irrelevant_objects[-1]
+                    print(f"--> Objects {objects_str} are irrelevant because they are not used in any Relevant Action.")
+            else:
+                    objects_str = list_irrelevant_objects[0] 
+                    print(f"--> Object {objects_str} is irrelevant because it is not used in any Relevant Action.")
+            break
+        else:
+            print("You have entered an invalid option.")
+
+def identifying_redundant_objects_OLD(task, list_actions_plan, list_pos_redundant_actions):
     
     while True:
         show_irrelevant_objects = input("\nWould you like to obtain redundant objects? (Yes/No): ").lower()
@@ -587,7 +619,7 @@ def main():
         show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions)
 
         # # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
-        identifying_redundant_objects(task, plan, list_pos_redundant_actions)
+        identifying_redundant_objects(plan, list_pos_redundant_actions)
 
         # Show causal chains
         showing_causal_chains(plan, causal_chain_list, task)

@@ -554,7 +554,7 @@ def main():
         # Print plan with action elimination
         show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions)
 
-        # # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
+        # Show irrelevant objects, which are those that are not needed in the perfectly justified plan
         identifying_redundant_objects(plan, list_pos_redundant_actions)
 
         # Show causal chains

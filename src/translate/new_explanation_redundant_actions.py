@@ -25,19 +25,6 @@ from collections import defaultdict
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
-def identifying_redundant_objects(list_actions_plan, list_pos_redundant_actions):
-    list_all_objects=[]
-    list_relevant_objects = []
-    # Objects present in relevant actions are considered relevant, regardless of their presence in the goal state; otherwise, they are not considered relevant.
-    for i, action in enumerate(list_actions_plan):
-        objects = action[action.find(' ') + 1:-1].split()
-        list_all_objects = list(set(list_all_objects) | set(objects))  
-        if (i+1) not in list_pos_redundant_actions:
-            list_relevant_objects = list(set(list_relevant_objects) | set(objects)) 
-                        
-    list_irrelevant_objects = list(set(list_all_objects) - set(list_relevant_objects))
-    return list_irrelevant_objects
-
 def show_redundant_objects(list_actions_plan, list_pos_redundant_actions):
     while True:
         show_irrelevant_objects = input("\nWould you like to obtain redundant objects? (Yes/No): ").lower()
@@ -58,6 +45,19 @@ def show_redundant_objects(list_actions_plan, list_pos_redundant_actions):
             break
         else:
             print("You have entered an invalid option.")
+
+def identifying_redundant_objects(list_actions_plan, list_pos_redundant_actions):
+    list_all_objects=[]
+    list_relevant_objects = []
+    # Objects present in relevant actions are considered relevant, regardless of their presence in the goal state; otherwise, they are not considered relevant.
+    for i, action in enumerate(list_actions_plan):
+        objects = action[action.find(' ') + 1:-1].split()
+        list_all_objects = list(set(list_all_objects) | set(objects))  
+        if (i+1) not in list_pos_redundant_actions:
+            list_relevant_objects = list(set(list_relevant_objects) | set(objects)) 
+                        
+    list_irrelevant_objects = list(set(list_all_objects) - set(list_relevant_objects))
+    return list_irrelevant_objects    
 
 # TODO: FIX ALL THE CODE BELOW 
 

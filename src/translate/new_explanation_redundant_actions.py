@@ -36,15 +36,26 @@ highlighting dependencies and illustrating execution in the unjustified plan.
 
 import argparse
 import sys
+
 from copy import deepcopy
 from collections import defaultdict
-
-
 from plan_parser import parse_plan
 from sas_parser import parse_task
 
 
 def show_redundant_objects(list_actions_plan, list_pos_redundant_actions):
+    """
+    Display redundant objects based on the provided list of actions in a plan
+    and the positions of redundant actions in the plan.
+
+    Parameters:
+    - list_actions_plan (list): A list representing the actions in the plan.
+    - list_pos_redundant_actions (list): Positions of redundant actions in the
+    plan.
+
+    Returns:
+    None
+    """
     while True:
         show_irrelevant_objects = input(
             "\nWould you like to obtain redundant objects? (Yes/No): "
@@ -82,6 +93,16 @@ def show_redundant_objects(list_actions_plan, list_pos_redundant_actions):
 
 
 def identifying_redundant_objects(list_actions_plan, list_pos_redundant_actions):
+    """
+    Identify and return the objects considered redundant in a plan.
+
+    Parameters:
+    - list_actions_plan (list): A list representing the actions in the plan.
+    - list_pos_redundant_actions (list): Positions of redundant actions in the plan.
+
+    Returns:
+    list: A list of objects considered redundant in the plan.
+    """
     list_all_objects = []
     list_relevant_objects = []
     # Objects present in relevant actions are considered relevant, regardless
@@ -97,10 +118,23 @@ def identifying_redundant_objects(list_actions_plan, list_pos_redundant_actions)
     return list_irrelevant_objects
 
 
-# TODO: FIX ALL THE CODE BELOW
-
-
 def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
+    """
+    Select and return the operators from the task planning domain (SAS+) that
+    are present in the given plan.
+
+    Parameters:
+    - operators (list): A list of all operators in the task planning domain (SAS+).
+    - plan (list): A list representing the actions in the plan.
+    - operator_name_to_index (dict): A dictionary mapping operator names to their
+    indices.
+    - ordered (bool): A boolean indicating whether the tasks in the plan are
+    ordered or unordered.
+
+    Returns:
+    list: A list of selected operators from the planning domain based on their
+    presence in the plan.
+    """
     plan_operators = []
     added = set()
 
@@ -117,15 +151,26 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
                 # set.add(x) always returns None so it doesn't affect the condition
                 if not op in added or added.add(op):
                     plan_operators += [operators[operator_name_to_index[op]]]
-
     return plan_operators
 
 
 def is_perfectly_justified(plan):
+    """
+    Determine if a given plan is perfectly justified.
+
+    Parameters:
+    - plan (list): A list representing the actions in the plan.
+
+    Returns:
+    bool: True if the plan is perfectly justified, False otherwise.
+    """
     for action in plan:
         if "skip-action" in action:
             return False
     return True
+
+
+# TODO: FIX ALL THE CODE BELOW
 
 
 # TODO: revise this code. It was modified to make it more readable

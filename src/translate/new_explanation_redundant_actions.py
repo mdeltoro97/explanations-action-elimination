@@ -170,14 +170,20 @@ def is_perfectly_justified(plan):
     return True
 
 
-# TODO: FIX ALL THE CODE BELOW
-
-
-# TODO: revise this code. It was modified to make it more readable
 def get_var_pre_post_list(operators):
     """
-    Obtains a list where each position represents an action, and contains a list of tuples in the form
-    [list of (var, precond_val), list of (var, prevail_val), list of (var, eff_val)]
+    Generates a combined list of variable preconditions, prevail conditions, and effects
+    for a given list of operators.
+
+    Parameters:
+    - operators (list): A list of operators representing actions of the plan.
+
+    Returns:
+    tuple: A tuple containing two lists:
+        1. A list of tuples, where each tuple contains two sublists:
+            - Combined variable preconditions and prevail conditions for an operator.
+            - A list of variable effects for the corresponding operator.
+        2. A list of prevail conditions for each operator.
     """
     op_precond_list = []
     op_prevail_list = []
@@ -191,8 +197,6 @@ def get_var_pre_post_list(operators):
         if not op is None:
             for prevail_val in op.prevail:
                 op_prevail += [(prevail_val[0], prevail_val[1])]
-
-        if not op is None:
             for var, precond_val, eff_val, _ in op.pre_post:
                 op_precond += [(var, precond_val)]
                 op_eff += [(var, eff_val)]
@@ -211,7 +215,7 @@ def get_var_pre_post_list(operators):
 
     return list(zip(precond_prevail_list, op_eff_list)), op_prevail_list
 
-
+#TODO: FIX EVERYTHING BELOW
 def get_prevail_link(prevail_link):
     producers_list, fact, consumer = prevail_link
     producers_list.sort()

@@ -48,7 +48,7 @@ def show_redundant_objects(list_actions_plan, list_pos_redundant_actions):
     Display redundant objects based on the provided list of actions in a plan
     and the positions of redundant actions in the plan.
 
-    Parameters:
+    Args:
     - list_actions_plan (list): A list representing the actions in the plan.
     - list_pos_redundant_actions (list): Positions of redundant actions in the
     plan.
@@ -96,7 +96,7 @@ def identifying_redundant_objects(list_actions_plan, list_pos_redundant_actions)
     """
     Identify and return the objects considered redundant in a plan.
 
-    Parameters:
+    Args:
     - list_actions_plan (list): A list representing the actions in the plan.
     - list_pos_redundant_actions (list): Positions of redundant actions in the plan.
 
@@ -123,7 +123,7 @@ def get_operators_from_plan(operators, plan, operator_name_to_index, ordered):
     Select and return the operators from the task planning domain (SAS+) that
     are present in the given plan.
 
-    Parameters:
+    Args:
     - operators (list): A list of all operators in the task planning domain (SAS+).
     - plan (list): A list representing the actions in the plan.
     - operator_name_to_index (dict): A dictionary mapping operator names to their
@@ -158,7 +158,7 @@ def is_perfectly_justified(plan):
     """
     Determine if a given plan is perfectly justified.
 
-    Parameters:
+    Args:
     - plan (list): A list representing the actions in the plan.
 
     Returns:
@@ -175,15 +175,15 @@ def get_var_pre_post_list(operators):
     Generates a combined list of variable preconditions, prevail conditions, and effects
     for a given list of operators.
 
-    Parameters:
+    Args:
     - operators (list): A list of operators representing actions of the plan.
 
     Returns:
     tuple: A tuple containing two lists:
-        1. A list of tuples, where each tuple contains two sublists:
+        - A list of tuples, where each tuple contains two sublists:
             - Combined variable preconditions and prevail conditions for an operator.
             - A list of variable effects for the corresponding operator.
-        2. A list of prevail conditions for each operator.
+        - A list of prevail conditions for each operator.
     """
     op_precond_list = []
     op_prevail_list = []
@@ -215,8 +215,23 @@ def get_var_pre_post_list(operators):
 
     return list(zip(precond_prevail_list, op_eff_list)), op_prevail_list
 
-#TODO: FIX EVERYTHING BELOW
+
 def get_prevail_link(prevail_link):
+    """
+    Extracts and processes information from a prevail link.
+
+    Args:
+    - prevail_link (tuple): A tuple representing a prevail link with the following elements:
+        - producers_list (list): A list of producer indices.
+        - fact (tuple): A tuple representing a fact with two values.
+        - consumer (int): The index of the consumer.
+
+    Returns:
+    tuple: A tuple containing the processed prevail link information:
+        - The index of the last producer for the consumer.
+        - The fact tuple.
+        - The index of the consumer.
+    """
     producers_list, fact, consumer = prevail_link
     producers_list.sort()
 
@@ -225,51 +240,14 @@ def get_prevail_link(prevail_link):
     return (last_producer_for_consumer, fact, consumer)
 
 
-# TODO: make this code more readable
-def extract_causal_links(task, plan_operators):
+def initialize_causal_links(task):
     # Obtain the values of the initial state of the form (var,val)
-    list_causal_links = [
-        [[0], (var, task.init.values[var]), []] for var in range(len(task.init.values))
+    return [
+        [[0], (var, task.init.values[var]), []]
+        for var in range(len(task.init.values))
     ]
-
-    list_causal_links_prevail = []
-
-    list_var_pre_post, op_prevail_list = get_var_pre_post_list(plan_operators)
-
-    for i in range(len(list_var_pre_post)):
-        list_precond = list_var_pre_post[i][0]
-        list_effects = list_var_pre_post[i][1]
-        for j in range(len(list_precond)):
-            fact = list_precond[j]
-            for k in range(len(list_causal_links)):
-                causal_link_temp = list_causal_links[k]
-                if causal_link_temp[1] == fact or (
-                    causal_link_temp[1][1] == -fact[1]
-                    and causal_link_temp[1][0] == fact[0]
-                ):
-                    if fact not in op_prevail_list[i]:
-                        list_causal_links[k][2].append(i + 1)
-                    else:
-                        # Analyze if the producer its ok, because I always assume that its the first
-                        causal_link_prevail = (list_causal_links[k][0], fact, i + 1)
-                        list_causal_links_prevail.append(causal_link_prevail)
-
-        for l in range(len(list_effects)):
-            fact = list_effects[l]
-            exist = False
-            for k in range(len(list_causal_links)):
-                causal_link_temp = list_causal_links[k]
-                if causal_link_temp[1] == fact:
-                    exist = True
-                    list_causal_links[k][0].append(i + 1)
-                    break
-            if exist == False:
-                list_causal_links.append([[i + 1], fact, []])
-
-    list_causal_links_prevail = [
-        get_prevail_link(prevail_link) for prevail_link in list_causal_links_prevail
-    ]
-
+    
+def finalize_causal_links(list_causal_links, task):
     list_causal_links_final = []
     for i in range(len(list_causal_links)):
         causal_link_temp = list_causal_links[i]
@@ -289,6 +267,9 @@ def extract_causal_links(task, plan_operators):
                         (producers[j], causal_link_temp[1], -1)
                     )
 
+    return list_causal_links_final
+
+def finalize_prevail_links(list_causal_links_prevail, task):
     list_prevail_links_final = []
     for i in range(len(list_causal_links_prevail)):
         causal_link_prevail = list_causal_links_prevail[i]
@@ -302,7 +283,153 @@ def extract_causal_links(task, plan_operators):
                 (producer, causal_link_prevail[1], consumer)
             )
 
+    return list_prevail_links_final
+
+def update_causal_links(list_causal_links, list_var_pre_post, op_prevail_list):
+    list_causal_links_prevail = []
+
+    for i in range(len(list_var_pre_post)):
+        list_precond = list_var_pre_post[i][0]
+        list_effects = list_var_pre_post[i][1]
+        for j in range(len(list_precond)):
+            fact = list_precond[j]
+            for k in range(len(list_causal_links)):
+                causal_link_temp = list_causal_links[k]
+                if (
+                    causal_link_temp[1] == fact
+                    or (
+                        causal_link_temp[1][1] == -fact[1]
+                        and causal_link_temp[1][0] == fact[0]
+                    )
+                ):
+                    if fact not in op_prevail_list[i]:
+                        list_causal_links[k][2].append(i + 1)
+                    else:
+                        causal_link_prevail = (
+                            list_causal_links[k][0],
+                            fact,
+                            i + 1,
+                        )
+                        list_causal_links_prevail.append(causal_link_prevail)
+
+        for l in range(len(list_effects)):
+            fact = list_effects[l]
+            exist = False
+            for k in range(len(list_causal_links)):
+                causal_link_temp = list_causal_links[k]
+                if causal_link_temp[1] == fact:
+                    exist = True
+                    list_causal_links[k][0].append(i + 1)
+                    break
+            if not exist:
+                list_causal_links.append([[i + 1], fact, []])
+
+    return [
+        get_prevail_link(prevail_link)
+        for prevail_link in list_causal_links_prevail
+    ]
+
+def extract_causal_links(task, plan_operators):
+    
+    list_causal_links = initialize_causal_links(task)
+    
+    list_var_pre_post, op_prevail_list = get_var_pre_post_list(plan_operators)
+    
+    list_causal_links_prevail = update_causal_links(
+        list_causal_links, list_var_pre_post, op_prevail_list
+    )
+
+    list_causal_links_final = finalize_causal_links(list_causal_links, task)
+    list_prevail_links_final = finalize_prevail_links(
+        list_causal_links_prevail, task
+    )
+
     return list_causal_links_final, list_prevail_links_final
+
+
+
+
+
+
+
+# TODO: FIX EVERYTHING BELOW
+# TODO: make this code more readable
+# def extract_causal_links(task, plan_operators):
+#     # Obtain the values of the initial state of the form (var,val)
+#     list_causal_links = [
+#         [[0], (var, task.init.values[var]), []] for var in range(len(task.init.values))
+#     ]
+
+#     list_causal_links_prevail = []
+
+#     list_var_pre_post, op_prevail_list = get_var_pre_post_list(plan_operators)
+
+#     for i in range(len(list_var_pre_post)):
+#         list_precond = list_var_pre_post[i][0]
+#         list_effects = list_var_pre_post[i][1]
+#         for j in range(len(list_precond)):
+#             fact = list_precond[j]
+#             for k in range(len(list_causal_links)):
+#                 causal_link_temp = list_causal_links[k]
+#                 if causal_link_temp[1] == fact or (
+#                     causal_link_temp[1][1] == -fact[1]
+#                     and causal_link_temp[1][0] == fact[0]
+#                 ):
+#                     if fact not in op_prevail_list[i]:
+#                         list_causal_links[k][2].append(i + 1)
+#                     else:
+#                         causal_link_prevail = (list_causal_links[k][0], fact, i + 1)
+#                         list_causal_links_prevail.append(causal_link_prevail)
+
+#         for l in range(len(list_effects)):
+#             fact = list_effects[l]
+#             exist = False
+#             for k in range(len(list_causal_links)):
+#                 causal_link_temp = list_causal_links[k]
+#                 if causal_link_temp[1] == fact:
+#                     exist = True
+#                     list_causal_links[k][0].append(i + 1)
+#                     break
+#             if not exist:
+#                 list_causal_links.append([[i + 1], fact, []])
+
+#     list_causal_links_prevail = [
+#         get_prevail_link(prevail_link) for prevail_link in list_causal_links_prevail
+#     ]
+
+#     list_causal_links_final = []
+#     for i in range(len(list_causal_links)):
+#         causal_link_temp = list_causal_links[i]
+#         fact = task.variables.value_names[causal_link_temp[1][0]][
+#             causal_link_temp[1][1]
+#         ]
+#         producers = causal_link_temp[0]
+#         consumers = causal_link_temp[2]
+#         if "NegatedAtom" not in fact:
+#             for j in range(len(producers)):
+#                 if j < len(consumers):
+#                     list_causal_links_final.append(
+#                         (producers[j], causal_link_temp[1], consumers[j])
+#                     )
+#                 else:
+#                     list_causal_links_final.append(
+#                         (producers[j], causal_link_temp[1], -1)
+#                     )
+
+#     list_prevail_links_final = []
+#     for i in range(len(list_causal_links_prevail)):
+#         causal_link_prevail = list_causal_links_prevail[i]
+#         fact = task.variables.value_names[causal_link_prevail[1][0]][
+#             causal_link_prevail[1][1]
+#         ]
+#         producer = causal_link_prevail[0]
+#         consumer = causal_link_prevail[2]
+#         if "NegatedAtom" not in fact:
+#             list_prevail_links_final.append(
+#                 (producer, causal_link_prevail[1], consumer)
+#             )
+
+#     return list_causal_links_final, list_prevail_links_final
 
 
 def pretty_print_causal_links(list_cl, plan_op, task):
@@ -386,6 +513,16 @@ def causal_chains(list_cl_plan_ae, task, list_cl_plan, ordered_dict):
 
 
 def pos_redundant_actions(sas_plan_ae):
+    """
+    Identify and return the positions of redundant actions (label "skip-action")
+    in the perfectly justified plan.
+
+    Args:
+    - sas_plan_ae (list): List of actions in the perfectly justified plan.
+
+    Returns:
+    - list: List of positions (indices) of redundant actions found in the plan.
+    """
     list_pos_redundant_actions = []
     for action in sas_plan_ae:
         if "skip-action" in action:

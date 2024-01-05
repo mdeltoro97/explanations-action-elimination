@@ -456,7 +456,8 @@ def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan
             return True
     return False
 
-# TODO: FIX EVERYTHING BELOW
+
+# TODO: FIX
 def causal_chain(elements, ordered_dict, element, list_temp):
     for val in elements:
         if val not in list_temp:
@@ -467,6 +468,7 @@ def causal_chain(elements, ordered_dict, element, list_temp):
     return list_temp
 
 
+# TODO: FIX
 def causal_chains(list_cl_plan_ae, task, list_cl_plan, ordered_dict):
     causal_chain_list = []
     for causal_link_temp in list_cl_plan_ae:
@@ -517,6 +519,15 @@ def pos_redundant_actions(sas_plan_ae):
 
 
 def convert_to_dict_producer_fact(list_action_fact):
+    """
+    Converts a list of tuples into a dictionary, grouping values by the same key.
+
+    Args:
+    - list_action_fact (list): List of tuples in the form (action, (var, val)).
+
+    Returns:
+    - dict: Dictionary where keys are actions, and values are lists of corresponding (var, val) tuples.
+    """
     dict_final = {}
     for tuple in list_action_fact:
         key = tuple[0]
@@ -530,6 +541,17 @@ def convert_to_dict_producer_fact(list_action_fact):
 
 
 def show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions):
+    """
+    Displays the perfectly justified plan with information about redundant actions.
+
+    Args:
+    - plan (list): List of actions of the plan.
+    - plan_ae_cost (float): Cost associated with the perfectly justified plan.
+    - list_pos_redundant_actions (list): List of positions of redundant actions in the plan.
+
+    Returns:
+    None
+    """
     print(
         "\nPerfectly justified plan (the redundant actions contained in the unjustified plan are shown)"
     )
@@ -542,6 +564,18 @@ def show_plan_ae(plan, plan_ae_cost, list_pos_redundant_actions):
 
 
 def get_redundant_producer(action_number, fact, task, causal_chain_list):
+    """
+    Retrieves the producer associated with a redundant action in the causal chain list.
+
+    Args:
+    - action_number (int): The number of the redundant action.
+    - fact (str): The fact associated with the redundant action.
+    - task (SASTask): The SAS+ planning task.
+    - causal_chain_list (list): List of tuples representing causal links and their corresponding chains.
+
+    Returns:
+    - int: The number of the producer associated with the redundant action.
+    """
     for causal_link_and_chain in causal_chain_list:
         if (
             causal_link_and_chain[0][2] == action_number
@@ -556,8 +590,20 @@ def get_redundant_producer(action_number, fact, task, causal_chain_list):
 def get_relevant_causal_links(
     plan, relevant_action_causal_links, list_prevail_links, task
 ):
-    list_explanations = []
-    list_fact_produced_initial_state = []
+    """
+    Retrieves relevant causal links and prevail conditions for a given plan.
+
+    Args:
+    - plan (list): List of actions of the plan.
+    - relevant_action_causal_links (list): List of relevant causal links for the plan.
+    - list_prevail_links (list): List of prevail conditions for the plan.
+    - task (SASTask): The SAS+ planning task.
+
+    Returns:
+    - list: List of explanations for the relevant causal links and prevail conditions.
+    """
+    explanations = []
+    produced_initial_state = []
 
     for causal_link_temp in relevant_action_causal_links:
         fact_index = causal_link_temp[1]
@@ -565,35 +611,46 @@ def get_relevant_causal_links(
         producer = causal_link_temp[0]
 
         if producer == 0:
-            list_fact_produced_initial_state.append(fact)
+            produced_initial_state.append(fact)
         else:
-            str = f"{fact} as a precondition which is obtained through the effects produced by the Relevant Action {producer} {plan[producer-1]}"
-            list_explanations.append(str)
+            explanation = (
+                f"{fact} as a precondition obtained through the effects produced by Relevant Action {producer} {plan[producer-1]}"
+            )
+            explanations.append(explanation)
 
-    if len(list_fact_produced_initial_state) > 0:
-        if len(list_fact_produced_initial_state) > 1:
+    if produced_initial_state:
+        if len(produced_initial_state) > 1:
             facts_str = (
-                ", ".join(list_fact_produced_initial_state[:-1])
+                ", ".join(produced_initial_state[:-1])
                 + " and "
-                + list_fact_produced_initial_state[-1]
+                + produced_initial_state[-1]
                 + " as preconditions which are obtained from the initial state"
             )
         else:
             facts_str = (
-                list_fact_produced_initial_state[0]
+                produced_initial_state[0]
                 + " as a precondition which is obtained from the initial state"
             )
-        list_explanations.append(facts_str)
+        explanations.append(facts_str)
 
-    if len(list_prevail_links) > 0:
-        list_explanations += get_justif_prevail_conditions(
-            plan, list_prevail_links, task
-        )
+    if list_prevail_links:
+        explanations += get_justif_prevail_conditions(plan, list_prevail_links, task)
 
-    return list_explanations
+    return explanations
 
 
 def get_justif_prevail_conditions(plan, list_prevail_links, task):
+    """
+    Retrieves explanations for prevail conditions.
+
+    Args:
+    - plan (list): List of actions of the plan.
+    - list_prevail_links (list): List of prevail conditions.
+    - task (SASTask): The SAS+ planning task.
+
+    Returns:
+    - list: List of explanations for the prevail conditions.
+    """
     list_explanations = []
     list_fact_produced_initial_state = []
 

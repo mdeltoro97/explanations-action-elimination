@@ -301,7 +301,7 @@ def finalize_prevail_links(list_causal_links_prevail, task):
 
     Returns:
     - list: List of finalized prevail links in the form [(producer, fact, consumer), ...],
-      where producer, fact, and consumer are indices, variable-value pairs, and indices, respectively.
+    where producer, fact, and consumer are indices, variable-value pairs, and indices, respectively.
     """
     list_prevail_links_final = []
     for producer, (var, val), consumer in list_causal_links_prevail:
@@ -323,7 +323,7 @@ def update_causal_links(list_causal_links, list_var_pre_post, op_prevail_list):
     Returns:
     - list: List of finalized prevail links in the form [(producer, fact, consumer), ...],
     where producer, fact, and consumer are indices, variable-value pairs, and indices, respectively.
-    """    
+    """
     list_causal_links_prevail = []
 
     for i in range(len(list_var_pre_post)):
@@ -390,6 +390,7 @@ def extract_causal_prevail_links(task, plan_operators):
 
     return list_causal_links_final, list_prevail_links_final
 
+
 def pretty_print_causal_links(list_cl, plan_op, task):
     """
     Prints the causal links with their corresponding operators and variable values.
@@ -406,16 +407,23 @@ def pretty_print_causal_links(list_cl, plan_op, task):
             f"{prod_name :<25} -> {task.variables.value_names[var][value] :<25} -> {cons_name}"
         )
 
-# TODO: FIX EVERYTHING BELOW
+
 def list_cl_to_dict(list_cl, is_key_producer=True):
     """
-    Converts a list of causal links in the form [(producer, (var, value), consumer),...]
-    into a dict where the keys can be the producers or the consumers depending
-    on is_key_producer and the values lists of the remaining elements:
+    Converts a list of causal links into a dictionary where the keys can be the
+    producers or the consumers depending on is_key_producer and the values
+    lists of the remaining elements:
     producer: (consumer, var_value)
     consumer: (producer, var_value)
-    """
 
+    Args:
+    - list_cl (list): List of causal links in the form [(producer, (var, value), consumer), ...].
+    - is_key_producer (bool): If True, uses producers as keys; if False, uses consumers as keys.
+
+    Returns:
+    - dict: Dictionary where keys are either producers or consumers based on the is_key_producer parameter,
+      and values are lists of tuples containing the corresponding (other_element, var_value).
+    """
     dict_cl = defaultdict(list)
 
     for producer, var_value, consumer in list_cl:
@@ -427,6 +435,17 @@ def list_cl_to_dict(list_cl, is_key_producer=True):
 
 
 def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan):
+    """
+    Check if a specific causal link belonging to the perfectly justified plan also exists in the unjustified plan.
+
+    Args:
+    - causal_link_temp_renamed (tuple): Renamed causal link in the form (producer, instanced_fact, consumer).
+    - task (SASTask): The SAS+ planning task.
+    - list_causal_links_sas_plan (list): List of causal links of the plan.
+
+    Returns:
+    - bool: True if the causal link exists in the unjustified plan, False otherwise.
+    """
     for causal_link_temp in list_causal_links_sas_plan:
         fact_sas_plan = (
             causal_link_temp[0],
@@ -437,7 +456,7 @@ def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan
             return True
     return False
 
-
+# TODO: FIX EVERYTHING BELOW
 def causal_chain(elements, ordered_dict, element, list_temp):
     for val in elements:
         if val not in list_temp:

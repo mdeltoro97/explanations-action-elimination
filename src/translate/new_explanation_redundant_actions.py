@@ -457,40 +457,64 @@ def exist_in_sas_plan(causal_link_temp_renamed, task, list_causal_links_sas_plan
     return False
 
 
-# TODO: FIX
-def causal_chain(elements, ordered_dict, element, list_temp):
+def causal_chain(elements, ordered_dict, element, causal_chain_list):
+    """
+    Recursive function to find causal chains for a given element.
+
+    Args:
+    - elements (list): List of elements to explore in the causal chain.
+    - ordered_dict (dict): Dictionary containing causal links.
+    - element: The current element being explored.
+    - causal_chain_list (list): Temporary list to store elements in the causal chain.
+
+    Returns:
+    - list: List representing the causal chain.
+    """    
     for val in elements:
-        if val not in list_temp:
-            list_temp.append(val)
+        if val not in causal_chain_list:
+            causal_chain_list.append(val)
             list_temp2 = ordered_dict.get(val, [])
             elements2 = list(set([valor[0] for valor in list_temp2]))
-            causal_chain(elements2, ordered_dict, element, list_temp)
-    return list_temp
+            causal_chain(elements2, ordered_dict, element, causal_chain_list)
+    return causal_chain_list
 
 
-# TODO: FIX
 def causal_chains(list_cl_plan_ae, task, list_cl_plan, ordered_dict):
+    """
+    Identifies causal chains in a plan.
+
+    Args:
+    - list_cl_plan_ae (list): List of causal links in the perfectly justified plan.
+    - task (SASTask): The SAS+ planning task.
+    - list_cl_plan (list): List of causal links in the plan.
+    - ordered_dict (dict): Dictionary containing causal links.
+
+    Returns:
+    - list: List of identified causal chains.
+    """
     causal_chain_list = []
     for causal_link_temp in list_cl_plan_ae:
-        causal_link_temp_renamed = (
+        cl_temp_fact_instantiated = (
             causal_link_temp[0],
             task.variables.value_names[causal_link_temp[1][0]][causal_link_temp[1][1]],
             causal_link_temp[2],
         )
-        is_in_sas_plan = exist_in_sas_plan(causal_link_temp_renamed, task, list_cl_plan)
+        is_in_sas_plan = exist_in_sas_plan(
+            cl_temp_fact_instantiated, task, list_cl_plan
+        )
         # Identify the causal links of the justified plan that are not in the unjustified plan to find the casual chains
-        if is_in_sas_plan == False and causal_link_temp[2] != -1:
+        if not is_in_sas_plan and causal_link_temp[2] != -1:
             for causal_link_dict in ordered_dict[causal_link_temp[2]]:
-                fact_renamed = task.variables.value_names[causal_link_dict[1][0]][
+                fact_instantiated = task.variables.value_names[causal_link_dict[1][0]][
                     causal_link_dict[1][1]
                 ]
-                if fact_renamed == causal_link_temp_renamed[1]:
+                if fact_instantiated == cl_temp_fact_instantiated[1]:
                     list_temp = ordered_dict.get(causal_link_dict[0], [])
                     elements = list(set([value[0] for value in list_temp]))
                     causal_chain_temp = [causal_link_dict[0]]
                     causal_chain_temp.extend(
                         causal_chain(
-                            elements, ordered_dict, causal_link_temp_renamed[0], []
+                            elements, ordered_dict, cl_temp_fact_instantiated[0], []
                         )
                     )
                     causal_chain_list.append(
@@ -613,9 +637,7 @@ def get_relevant_causal_links(
         if producer == 0:
             produced_initial_state.append(fact)
         else:
-            explanation = (
-                f"{fact} as a precondition obtained through the effects produced by Relevant Action {producer} {plan[producer-1]}"
-            )
+            explanation = f"{fact} as a precondition obtained through the effects produced by Relevant Action {producer} {plan[producer-1]}"
             explanations.append(explanation)
 
     if produced_initial_state:
@@ -651,8 +673,8 @@ def get_justif_prevail_conditions(plan, list_prevail_links, task):
     Returns:
     - list: List of explanations for the prevail conditions.
     """
-    list_explanations = []
-    list_fact_produced_initial_state = []
+    explanations = []
+    produced_initial_state = []
 
     for prevail_link_temp in list_prevail_links:
         fact_var_val = prevail_link_temp[1]
@@ -660,29 +682,30 @@ def get_justif_prevail_conditions(plan, list_prevail_links, task):
         producer = prevail_link_temp[0]
 
         if producer == 0:
-            list_fact_produced_initial_state.append(fact)
+            produced_initial_state.append(fact)
         else:
-            str = f"{fact} as a prevail-condition which is obtained through the effects produced by the Relevant Action {producer} {plan[producer-1]}"
-            list_explanations.append(str)
+            explanation = f"{fact} as a prevail-condition obtained through the effects produced by Relevant Action {producer} {plan[producer-1]}"
+            explanations.append(explanation)
 
-    if len(list_fact_produced_initial_state) > 0:
-        if len(list_fact_produced_initial_state) > 1:
+    if produced_initial_state:
+        if len(produced_initial_state) > 1:
             facts_str = (
-                ", ".join(list_fact_produced_initial_state[:-1])
+                ", ".join(produced_initial_state[:-1])
                 + " and "
-                + list_fact_produced_initial_state[-1]
+                + produced_initial_state[-1]
                 + " as prevail-conditions which are obtained from the initial state."
             )
         else:
             facts_str = (
-                list_fact_produced_initial_state[0]
+                produced_initial_state[0]
                 + " as a prevail-condition which is obtained from the initial state."
             )
-        list_explanations.append(facts_str)
+        explanations.append(facts_str)
 
-    return list_explanations
+    return explanations
 
 
+# TODO: FIX
 def generating_explanations(
     plan,
     list_pos_redundant_actions,
@@ -843,6 +866,7 @@ def generating_explanations(
             print("You have entered an invalid option.")
 
 
+# TODO: FIX
 def showing_causal_chains(plan, causal_chain_list, task):
     while True:
         show_causal_chains = input(

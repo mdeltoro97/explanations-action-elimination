@@ -469,7 +469,7 @@ def causal_chain(elements, ordered_dict, element, causal_chain_list):
 
     Returns:
     - list: List representing the causal chain.
-    """    
+    """
     for val in elements:
         if val not in causal_chain_list:
             causal_chain_list.append(val)
@@ -705,7 +705,6 @@ def get_justif_prevail_conditions(plan, list_prevail_links, task):
     return explanations
 
 
-# TODO: FIX
 def generating_explanations(
     plan,
     list_pos_redundant_actions,
@@ -715,10 +714,26 @@ def generating_explanations(
     causal_chain_list,
     list_links_prevail_ae_plan,
 ):
+    """
+    Generates explanations for actions in the plan based on user input.
+
+    Args:
+    - plan (list): List of actions of the plan.
+    - list_pos_redundant_actions (list): List of positions of redundant actions.
+    - list_causal_links_sas_plan (list): List of causal links in the unjustified plan.
+    - list_causal_links_ae_sas_plan (list): List of causal links in the perfectly justified plan.
+    - task (SASTask): The SAS+ planning task.
+    - causal_chain_list (list): List of causal chains.
+    - list_links_prevail_ae_plan (list): List of prevail links in the perfectly justified plan.
+
+    Returns:
+    None
+    """
     explanations_dict = {}
 
     while True:
         explain = input("\nWould you like to generate explanations? (Yes/No): ").lower()
+
         if explain == "no":
             print("Explanation generation execution is finished.")
             break
@@ -728,146 +743,216 @@ def generating_explanations(
                 print("You have entered an invalid action number.")
             else:
                 action_number = int(action_number_input)
-                if 0 < action_number <= len(plan):
-                    if action_number in explanations_dict:
-                        print(explanations_dict[action_number])
-                    else:
-                        explanation_str = ""
-                        explanation_str += (
-                            f"\nAction #{action_number}: {plan[action_number-1]}\n"
-                        )
-
-                        relevant_action_causal_links_dict = list_cl_to_dict(
-                            [tuple[0] for tuple in causal_chain_list], False
-                        )
-                        if (
-                            len(relevant_action_causal_links_dict) == 0
-                            or action_number not in relevant_action_causal_links_dict
-                        ):
-                            relevant_action_causal_links_dict = list_cl_to_dict(
-                                list_causal_links_ae_sas_plan, False
-                            )
-                        redundant_action_causal_links_dict = list_cl_to_dict(
-                            list_causal_links_sas_plan, True
-                        )
-
-                        prevail_links_dict = list_cl_to_dict(
-                            list_links_prevail_ae_plan, False
-                        )
-
-                        if action_number in list_pos_redundant_actions:
-                            consumers_list = redundant_action_causal_links_dict.get(
-                                action_number, []
-                            )
-                            dict_temp = convert_to_dict_producer_fact(consumers_list)
-                            explanation_str += "This Action is Redundant in the plan because it produces:"
-                            for consumer, fact_list in dict_temp.items():
-                                fact_list_renamed = [
-                                    task.variables.value_names[fact[0]][fact[1]]
-                                    for fact in fact_list
-                                ]
-                                facts_str = ""
-                                if len(fact_list) == 1:
-                                    facts_str = fact_list_renamed[0]
-                                else:
-                                    facts_str = (
-                                        ", ".join(fact_list_renamed[:-1])
-                                        + " and "
-                                        + fact_list_renamed[-1]
-                                    )
-                                if consumer == -1:
-                                    explanation_str += f"\n--> {facts_str} that is not consumed by any other action."
-                                elif consumer in list_pos_redundant_actions:
-                                    explanation_str += f"\n--> {facts_str} which is consumed by the Action {consumer} {plan[consumer-1]} also Redundant."
-                                else:
-                                    if consumer in prevail_links_dict:
-                                        relevant_causal_links = (
-                                            get_relevant_causal_links(
-                                                plan,
-                                                relevant_action_causal_links_dict[
-                                                    consumer
-                                                ],
-                                                prevail_links_dict[consumer],
-                                                task,
-                                            )
-                                        )
-                                    else:
-                                        relevant_causal_links = (
-                                            get_relevant_causal_links(
-                                                plan,
-                                                relevant_action_causal_links_dict[
-                                                    consumer
-                                                ],
-                                                [],
-                                                task,
-                                            )
-                                        )
-                                    rel_expl_str = ""
-                                    if len(relevant_causal_links) == 1:
-                                        rel_expl_str = relevant_causal_links[0]
-                                    else:
-                                        rel_expl_str = (
-                                            "; ".join(relevant_causal_links[:-1])
-                                            + " and "
-                                            + relevant_causal_links[-1]
-                                        )
-                                    explanation_str += f"\n--> {facts_str} which is consumed by the Action {consumer} {plan[consumer-1]} that is Relevant. Action {consumer} in the justified plan needs {rel_expl_str}."
-
-                        else:
-                            producers_list = relevant_action_causal_links_dict.get(
-                                action_number, []
-                            )
-                            explanation_str += "In the justified plan, in order for this Relevant Action to be executed, it requires the fact:"
-                            list_fact_produced_initial_state = []
-                            for element in producers_list:
-                                producer, (var_index, val_index) = element
-                                fact = task.variables.value_names[var_index][val_index]
-                                if producer == 0:
-                                    list_fact_produced_initial_state.append(fact)
-                                else:
-                                    redundant_action = get_redundant_producer(
-                                        action_number, fact, task, causal_chain_list
-                                    )
-                                    if redundant_action is None:
-                                        explanation_str += f"\n--> {fact} as a precondition which is obtained through the effects produced by the Relevant Action {producer} {plan[producer-1]}."
-                                    else:
-                                        explanation_str += f"\n--> {fact} as a precondition which is obtained through the effects produced by the Relevant Action {producer} {plan[producer-1]}. This fact, in the unjustified plan, Action {action_number} {plan[action_number-1]} obtained it through the Redundant Action {redundant_action} {plan[redundant_action-1]}."
-
-                            facts_str = ""
-                            if len(list_fact_produced_initial_state) > 1:
-                                facts_str = (
-                                    ", ".join(list_fact_produced_initial_state[:-1])
-                                    + " and "
-                                    + list_fact_produced_initial_state[-1]
-                                    + " as preconditions which are obtained from the initial state."
-                                )
-                            if len(list_fact_produced_initial_state) == 1:
-                                facts_str = (
-                                    list_fact_produced_initial_state[0]
-                                    + " as a precondition which is obtained from the initial state."
-                                )
-
-                            if len(facts_str) > 0:
-                                explanation_str += f"\n--> {facts_str}"
-
-                            if action_number in prevail_links_dict:
-                                list_prevail_justif = get_justif_prevail_conditions(
-                                    plan, prevail_links_dict[action_number], task
-                                )
-                                if len(list_prevail_justif) > 0:
-                                    for prevail_justif in list_prevail_justif:
-                                        explanation_str += f"\n--> {prevail_justif}"
-
-                        explanations_dict[action_number] = explanation_str
-                        print(explanation_str)
-                else:
-                    print("You have entered an invalid action number.")
+                generate_action_explanation(
+                    action_number,
+                    plan,
+                    explanations_dict,
+                    list_pos_redundant_actions,
+                    list_causal_links_sas_plan,
+                    list_causal_links_ae_sas_plan,
+                    task,
+                    causal_chain_list,
+                    list_links_prevail_ae_plan,
+                )
         else:
             print("You have entered an invalid option.")
 
 
-# TODO: FIX
+def generate_action_explanation(
+    action_number,
+    plan,
+    explanations_dict,
+    list_pos_redundant_actions,
+    list_causal_links_sas_plan,
+    list_causal_links_ae_sas_plan,
+    task,
+    causal_chain_list,
+    list_links_prevail_ae_plan,
+):
+    """
+    Generates and prints detailed explanations for a given action based on the causal links
+    and prevail conditions in the plan.
+
+    Args:
+    - action_number (int): The number of the action for which an explanation is generated.
+    - plan (list): List of actions of the plan.
+    - explanations_dict (dict): Dictionary to store generated explanations.
+    - list_pos_redundant_actions (list): List of positions of redundant actions.
+    - list_causal_links_sas_plan (list): List of causal links in the unjustified plan.
+    - list_causal_links_ae_sas_plan (list): List of causal links in the perfectly justified SAS plan.
+    - task (SASTask): The SAS+ planning task.
+    - causal_chain_list (list): List of causal chains.
+    - list_links_prevail_ae_plan (list): List of prevail links in the perfectly justified plan.
+
+    Returns:
+    None
+    """
+    if 0 < action_number <= len(plan):
+        if action_number in explanations_dict:
+            print(explanations_dict[action_number])
+        else:
+            explanation_str = f"\nAction #{action_number}: {plan[action_number-1]}\n"
+            relevant_action_causal_links_dict = list_cl_to_dict([tuple[0] for tuple in causal_chain_list], False)
+            if (len(relevant_action_causal_links_dict) == 0 or action_number not in relevant_action_causal_links_dict):
+                relevant_action_causal_links_dict = list_cl_to_dict(list_causal_links_ae_sas_plan, False)
+            redundant_action_causal_links_dict = list_cl_to_dict(list_causal_links_sas_plan, True)
+            prevail_links_dict = list_cl_to_dict(list_links_prevail_ae_plan, False)
+
+            if action_number in list_pos_redundant_actions:
+                explanation_str = generate_redundant_action_explanation(
+                    action_number,
+                    redundant_action_causal_links_dict,
+                    plan,
+                    list_pos_redundant_actions,
+                    prevail_links_dict,
+                    task,
+                    relevant_action_causal_links_dict,
+                    explanation_str,
+                )
+            else:
+                explanation_str = generate_relevant_action_explanation(
+                    action_number,
+                    relevant_action_causal_links_dict,
+                    task,
+                    prevail_links_dict,
+                    causal_chain_list,
+                    explanation_str,
+                    plan,
+                )
+
+            explanations_dict[action_number] = explanation_str
+            print(explanation_str)
+    else:
+        print("You have entered an invalid action number.")
+
+
+def generate_redundant_action_explanation(
+    action_number,
+    redundant_action_causal_links_dict,
+    plan,
+    list_pos_redundant_actions,
+    prevail_links_dict,
+    task,
+    relevant_action_causal_links_dict,
+    explanation_str,
+):
+    """
+    Generates explanation for a redundant action.
+
+    Args:
+    - action_number (int): Action number for which the explanation is generated.
+    - redundant_action_causal_links_dict (dict): Dictionary of redundant action causal links.
+    - plan (list): List of actions of the plan.
+    - list_pos_redundant_actions (list): List of positions of redundant actions.
+    - prevail_links_dict (dict): Dictionary of prevail links.
+    - task (SASTask): The SAS+ planning task.
+    - relevant_action_causal_links_dict (dict): Dictionary of relevant action causal links.
+    - explanation_str (str): Initial explanation string.
+
+    Returns:
+    - str: Explanation for a redundant action.
+    """
+    consumers_list = redundant_action_causal_links_dict.get(action_number, [])
+    dict_temp = convert_to_dict_producer_fact(consumers_list)
+    explanation_str += "This Action is Redundant in the plan because it produces:"
+    for consumer, fact_list in dict_temp.items():
+        fact_list_instantiated = [task.variables.value_names[fact[0]][fact[1]] for fact in fact_list]
+        facts_str = ""
+        if len(fact_list) == 1:
+            facts_str = fact_list_instantiated[0]
+        else:
+            facts_str = ', '.join(fact_list_instantiated[:-1]) + ' and ' + fact_list_instantiated[-1]
+        if consumer == -1:
+            explanation_str += f"\n--> {facts_str} that is not consumed by any other action."
+        elif consumer in list_pos_redundant_actions:
+            explanation_str += f"\n--> {facts_str} which is consumed by the Action {consumer} {plan[consumer-1]} also Redundant."
+        else:
+            if consumer in prevail_links_dict:
+                relevant_causal_links = get_relevant_causal_links(plan, relevant_action_causal_links_dict[consumer], prevail_links_dict[consumer], task)
+            else:
+                relevant_causal_links = get_relevant_causal_links(plan, relevant_action_causal_links_dict[consumer], [], task)
+
+            rel_expl_str = (
+                relevant_causal_links[0]
+                if len(relevant_causal_links) == 1
+                else "; ".join(relevant_causal_links[:-1])
+                + " and "
+                + relevant_causal_links[-1]
+            )
+
+            explanation_str += f"\n--> {facts_str} which is consumed by the Action {consumer} {plan[consumer-1]} that is Relevant. Action {consumer} in the justified plan needs {rel_expl_str}."
+    return explanation_str
+   
+
+def generate_relevant_action_explanation(
+    action_number,
+    relevant_action_causal_links_dict,
+    task,
+    prevail_links_dict,
+    causal_chain_list,
+    explanation_str,
+    plan,
+):
+    """
+    Generates explanation for a relevant action.
+
+    Args:
+    - action_number (int): Action number for which the explanation is generated.
+    - relevant_action_causal_links_dict (dict): Dictionary of relevant action causal links.
+    - task (SASTask): The SAS+ planning task.
+    - prevail_links_dict (dict): Dictionary of prevail links.
+    - causal_chain_list (list): List of causal chains.
+    - explanation_str (str): Initial explanation string.
+    - plan (list): List of actions of the plan.
+
+    Returns:
+    - str: Explanation for a relevant action.
+    """
+    producers_list = relevant_action_causal_links_dict.get(action_number, [])
+    explanation_str += "In the justified plan, in order for this Relevant Action to be executed, it requires the fact:"
+    list_fact_produced_initial_state = []
+    for element in producers_list:
+        producer, (var_index, val_index) = element
+        fact = task.variables.value_names[var_index][val_index]
+        if producer == 0:
+            list_fact_produced_initial_state.append(fact)
+        else:
+            redundant_action = get_redundant_producer(action_number, fact, task, causal_chain_list)
+            if redundant_action is None:
+                explanation_str += f"\n--> {fact} as a precondition which is obtained through the effects produced by the Relevant Action {producer} {plan[producer-1]}."
+            else:
+                explanation_str += f"\n--> {fact} as a precondition which is obtained through the effects produced by the Relevant Action {producer} {plan[producer-1]}. This fact, in the unjustified plan, Action {action_number} {plan[action_number-1]} obtained it through the Redundant Action {redundant_action} {plan[redundant_action-1]}."
+                            
+    facts_str = ""
+    if len(list_fact_produced_initial_state) > 1:
+        facts_str = ", ".join(list_fact_produced_initial_state[:-1]) + " and " + list_fact_produced_initial_state[-1] + " as preconditions which are obtained from the initial state."
+    if len(list_fact_produced_initial_state) == 1:
+        facts_str = list_fact_produced_initial_state[0] + " as a precondition which is obtained from the initial state."
+                            
+    if len(facts_str) > 0:
+        explanation_str += f"\n--> {facts_str}"
+                        
+    if action_number in prevail_links_dict: 
+        list_prevail_justif = get_justif_prevail_conditions(plan, prevail_links_dict[action_number], task)
+        if len(list_prevail_justif)>0:
+            for prevail_justif in list_prevail_justif:
+                explanation_str += f"\n--> {prevail_justif}"
+                
+    return explanation_str
+
+
 def showing_causal_chains(plan, causal_chain_list, task):
+    """
+    Displays causal chains present in the unjustified plan based on user input.
+
+    Args:
+    - plan (list): List of actions of the plan.
+    - causal_chain_list (list): List of identified causal chains.
+    - task (SASTask): The SAS+ planning task.
+
+    Returns:
+    None
+    """
     while True:
         show_causal_chains = input(
             "\nWould you like to obtain the causal chains present in the unjustified plan? (Yes/No): "
@@ -876,11 +961,12 @@ def showing_causal_chains(plan, causal_chain_list, task):
             print("Obtaining causal chains finished.")
             break
         elif show_causal_chains == "yes":
-            if len(causal_chain_list) > 0:
+            if causal_chain_list:
                 for causal_link_chain in causal_chain_list:
-                    explanation_str = ""
-                    causal_link = causal_link_chain[0]
-                    causal_chain = causal_link_chain[1]
+                    causal_link, causal_chain = (
+                        causal_link_chain[0],
+                        causal_link_chain[1],
+                    )
                     fact_instantiated = task.variables.value_names[causal_link[1][0]][
                         causal_link[1][1]
                     ]
@@ -893,11 +979,13 @@ def showing_causal_chains(plan, causal_chain_list, task):
                         explanation_str += (
                             f"Action {causal_link[0]} {plan[causal_link[0]-1]} "
                         )
-                    explanation_str += f" and is consumed by Action {causal_link[2]} {plan[causal_link[2]-1]} in the perfectly justified plan. In the unjustified plan, this fact would be obtained through the following causal chain of actions:"
-                    producer = causal_link[0]
 
+                    explanation_str += f" and is consumed by Action {causal_link[2]} {plan[causal_link[2]-1]} in the perfectly justified plan. In the unjustified plan, this fact would be obtained through the following causal chain of actions:"
+
+                    producer = causal_link[0]
                     causal_chain_str = ""
                     found = False
+
                     for action in causal_chain:
                         if action == producer:
                             found = True
